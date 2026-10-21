@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import AuthModal from '../../features/auth/AuthModal';
+import GoogleAvatar from './GoogleAvatar';
 
 const coreTools = [
   { label: 'LÁ SỐ TỬ VI', to: '/la-so-tu-vi' },
@@ -8,7 +9,7 @@ const coreTools = [
   { label: 'KỲ MÔN', to: '/ky-mon-don-giap' },
   { label: 'PHONG THỦY', to: '/la-kinh-phong-thuy' },
   { label: 'LỊCH VẠN SỰ', to: '/lich-van-su' },
-  { label: 'THẦN SỐ HỌC', to: '/than-so-hoc' },
+  { label: 'PHẬT PHAP', to: '/phat-phap' },
 ];
 
 function Navbar() {
@@ -26,6 +27,26 @@ function Navbar() {
     } catch {
       /* ignore */
     }
+    const token = localStorage.getItem('tuvi_token');
+    if (token) {
+      fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
+        .then((response) => response.ok ? response.json() : null)
+        .then((result) => {
+          if (result?.user) {
+            setUser(result.user);
+            localStorage.setItem('tuvi_user', JSON.stringify(result.user));
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
+
+  useEffect(() => {
+    const syncUser = () => {
+      try { setUser(JSON.parse(localStorage.getItem('tuvi_user') || 'null')); } catch { setUser(null); }
+    };
+    window.addEventListener('tuvi-auth-updated', syncUser);
+    return () => window.removeEventListener('tuvi-auth-updated', syncUser);
   }, []);
 
   const handleLogout = async () => {
@@ -43,6 +64,7 @@ function Navbar() {
     localStorage.removeItem('tuvi_token');
     localStorage.removeItem('tuvi_user');
     setUser(null);
+    window.dispatchEvent(new Event('tuvi-auth-updated'));
   };
 
   // Close mobile menu when navigating to another route
@@ -89,7 +111,12 @@ function Navbar() {
           >
             <div className="user-avatar-wrap">
               {user?.avatar ? (
-                <img src={user.avatar} alt={user.name || 'Người dùng'} className="user-avatar-img" />
+                <GoogleAvatar
+                  src={user.avatar}
+                  name={user.name}
+                  className="user-avatar-img"
+                  fallbackClassName="user-avatar-placeholder user-avatar-placeholder-text"
+                />
               ) : (
                 <div className="user-avatar-placeholder">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -137,7 +164,12 @@ function Navbar() {
               aria-label="Đăng nhập"
             >
               {user?.avatar ? (
-                <img src={user.avatar} alt="User" className="user-avatar-img-sm" />
+                <GoogleAvatar
+                  src={user.avatar}
+                  name={user.name}
+                  className="user-avatar-img-sm"
+                  fallbackClassName="user-avatar-img-sm user-avatar-placeholder-text"
+                />
               ) : (
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>

@@ -88,3 +88,4 @@
   .customer-admin-detail-grid { grid-template-columns: 1fr; }
   .customer-admin-dialog { padding: 20px 16px; }
 }
+.customer-admin-heading-actions{display:flex;align-items:center;gap:10px}.customer-admin-articles-link{display:inline-flex;min-height:38px;align-items:center;padding:0 13px;border:1px solid #e7c989;border-radius:8px;background:#fffaf0;color:#78350f;text-decoration:none;font-size:12px;font-weight:700}

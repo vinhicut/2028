@@ -30,14 +30,14 @@ if BACKEND_DIR not in sys.path:
 for env_file in [os.path.join(PROJECT_ROOT, ".env"), os.path.join(PROJECT_ROOT, "backend", ".env")]:
     if os.path.exists(env_file):
         try:
-            with open(env_file, "r", encoding="utf-8") as f:
+            with open(env_file, "r", encoding="utf-8-sig") as f:
                 for line in f:
                     line = line.strip()
                     if line and not line.startswith("#") and "=" in line:
                         key, val = line.split("=", 1)
                         key = key.strip()
                         val = val.strip().strip("'\"")
-                        if key not in os.environ:
+                        if key not in os.environ or not os.environ[key].strip():
                             os.environ[key] = val
         except Exception:
             pass
@@ -52,6 +52,7 @@ from modules.auth.routes_auth import auth_bp
 from modules.admin.routes_admin import admin_bp
 from modules.astrology.routes_charts import charts_bp
 from modules.booking.routes_booking import booking_bp
+from modules.chat.routes_chat import chat_bp
 
 # Cấu hình mặc định
 CONFIG = {
@@ -79,6 +80,7 @@ def create_app():
     app.register_blueprint(admin_bp)
     app.register_blueprint(charts_bp)
     app.register_blueprint(booking_bp)
+    app.register_blueprint(chat_bp)
 
     # Cấu hình CORS an toàn
     @app.after_request
@@ -104,6 +106,16 @@ def create_app():
             "static_directory": static_label
         }
         return jsonify(payload)
+
+    @app.route("/api/articles", methods=["GET"])
+    def public_articles():
+        from core.node_api_proxy import proxy_customer_api
+        return proxy_customer_api("/api/articles")
+
+    @app.route("/api/article-images/<path:filename>", methods=["GET"])
+    def public_article_image(filename):
+        from core.node_api_proxy import proxy_customer_api
+        return proxy_customer_api(f"/api/article-images/{filename}")
 
     # 2. API Tính toán lá số Tử Vi Đẩu Số
     @app.route("/api/calculate", methods=["POST"])

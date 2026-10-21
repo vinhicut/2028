@@ -16,6 +16,16 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     proxy: {
+      // Send article requests straight to the Node API. This avoids buffering
+      // large base64 image uploads through Flask while keeping manager auth in Node.
+      '/api/admin/article-images': {
+        target: 'http://127.0.0.1:3001',
+        changeOrigin: true,
+      },
+      '/api/admin/articles': {
+        target: 'http://127.0.0.1:3001',
+        changeOrigin: true,
+      },
       '/api/customer-logs': {
         target: 'http://127.0.0.1:3001',
         changeOrigin: true,

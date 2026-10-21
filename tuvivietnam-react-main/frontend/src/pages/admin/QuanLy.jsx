@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AlertCircle, RefreshCw, Search, ShieldCheck, UserRound, Eye, X, Trash2 } from 'lucide-react';
 import './QuanLy.css';
+import AdminChatPanel from './AdminChatPanel';
 
 function formatBirth(input = {}) {
   const date = [input.day, input.month, input.year].filter((part) => part !== undefined && part !== '').join('/');
@@ -21,6 +22,7 @@ export default function QuanLy() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [authorized, setAuthorized] = useState(false);
+  const [adminLevel, setAdminLevel] = useState(null);
   const [devLoginLoading, setDevLoginLoading] = useState(false);
   const [deletingAccountId, setDeletingAccountId] = useState(null);
   const [accountError, setAccountError] = useState('');
@@ -50,6 +52,9 @@ export default function QuanLy() {
         throw new Error('Tài khoản hiện tại không có quyền quản lý.');
       }
       setAuthorized(true);
+      const level = Number(authData.user?.admin_level || 2);
+      setAdminLevel(level);
+      if (level !== 1) return;
 
       const response = await fetch('/api/admin/customer-logs/charts?limit=100', {
         headers: { Authorization: `Bearer ${token}` },
@@ -167,6 +172,10 @@ export default function QuanLy() {
     };
   }, [selectedLog]);
 
+  if (!loading && authorized && adminLevel !== 1) {
+    return <main className="customer-admin-page"><header className="customer-admin-heading"><div><span className="customer-admin-eyebrow"><ShieldCheck size={15} /> KHU VỰC QUẢN TRỊ</span><h1>Quản trị nội dung và người dùng</h1><p>Admin {adminLevel} có quyền quản lý bài viết và tài khoản người dùng.</p></div><div className="customer-admin-heading-actions"><Link className="customer-admin-articles-link" to="/quan-ly/nguoi-dung">Quản lý người dùng</Link><Link className="customer-admin-articles-link" to="/quan-ly/bai-viet">Quản lý bài viết</Link></div></header><AdminChatPanel /></main>;
+  }
+
   const filteredLogs = useMemo(() => {
     const query = search.trim().toLocaleLowerCase('vi');
     if (!query) return logs;
@@ -182,9 +191,13 @@ export default function QuanLy() {
           <h1>Khách hàng lập lá số</h1>
           <p>Thông tin khách và lá số được gửi khi khách chủ động chọn lập lá số.</p>
         </div>
-        <button type="button" className="customer-admin-refresh" onClick={loadLogs} disabled={loading}>
-          <RefreshCw size={16} className={loading ? 'customer-admin-spinning' : ''} /> Làm mới
-        </button>
+        <div className="customer-admin-heading-actions">
+          {authorized && <Link className="customer-admin-articles-link" to="/quan-ly/nguoi-dung">Quản lý người dùng</Link>}
+          {authorized && <Link className="customer-admin-articles-link" to="/quan-ly/bai-viet">Quản lý bài viết</Link>}
+          <button type="button" className="customer-admin-refresh" onClick={loadLogs} disabled={loading}>
+            <RefreshCw size={16} className={loading ? 'customer-admin-spinning' : ''} /> Làm mới
+          </button>
+        </div>
       </header>
 
       <section className="customer-admin-toolbar">
@@ -209,6 +222,8 @@ export default function QuanLy() {
           </article>
         ))}</div>}
       </section>
+
+      {authorized && adminLevel === 1 && <AdminChatPanel />}
 
       {error && <div className="customer-admin-alert"><AlertCircle size={18} /><span>{error}</span>{!authorized && isLocalDev && <button type="button" onClick={loginAsLocalManager} disabled={devLoginLoading}>{devLoginLoading ? 'Đang đăng nhập…' : 'Đăng nhập quản lý thử nghiệm'}</button>}{!authorized && <button type="button" onClick={() => navigate('/')}>Về trang chủ</button>}</div>}
 

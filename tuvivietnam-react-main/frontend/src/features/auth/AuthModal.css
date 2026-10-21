@@ -20,7 +20,9 @@
 .auth-modal {
   background: #ffffff;
   width: 100%;
-  max-width: 420px;
+  max-width: 520px;
+  max-height: 88vh;
+  overflow-y: auto;
   border-radius: 12px;
   padding: 36px 28px 32px;
   position: relative;
@@ -105,6 +107,13 @@
   font-size: 32px;
 }
 
+.auth-user-avatar-initials {
+  color: #475569;
+  font-family: 'Be Vietnam Pro', Arial, sans-serif;
+  font-size: 18px !important;
+  font-weight: 700;
+}
+
 .auth-user-name {
   font-size: 16px;
   font-weight: 700;
@@ -161,3 +170,24 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+.auth-referral-card { display: grid; gap: 5px; width: 100%; margin-top: 7px; padding: 10px 12px; box-sizing: border-box; border: 1px solid #eadcc7; border-radius: 9px; background: #fffaf2; text-align: center; }
+.auth-referral-card span { color: #88745c; font-size: 10px; }
+.auth-referral-card strong { color: #7b3027; font-size: 14px; letter-spacing: .12em; }
+.auth-referral-card a { overflow-wrap: anywhere; color: #72532f; font-size: 10px; text-decoration: underline; }
+.auth-profile-details { display: grid; width: 100%; gap: 10px; margin-top: 7px; text-align: left; }
+.auth-profile-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.auth-profile-facts > div, .auth-profile-service-summary { display: grid; gap: 4px; min-width: 0; padding: 9px 10px; border: 1px solid #eadcc7; border-radius: 8px; background: #fffaf2; }
+.auth-profile-facts span, .auth-profile-service-summary span { color: #88745c; font-size: 10px; }
+.auth-profile-facts strong, .auth-profile-service-summary strong { overflow-wrap: anywhere; color: #4b4034; font-size: 12px; }
+.auth-profile-history { overflow: hidden; border: 1px solid #eadcc7; border-radius: 8px; background: #fff; }
+.auth-profile-history header { display: flex; align-items: center; justify-content: space-between; padding: 9px 10px; background: #fffaf2; color: #7b3027; font-size: 11px; }
+.auth-profile-history header span { color: #88745c; }
+.auth-profile-history ul { display: grid; max-height: 150px; gap: 0; overflow-y: auto; margin: 0; padding: 0; list-style: none; }
+.auth-profile-history li { display: grid; gap: 3px; padding: 8px 10px; border-top: 1px solid #f1ece5; }
+.auth-profile-history li strong { color: #4b4034; font-size: 11px; }
+.auth-profile-history li span, .auth-profile-history > p { margin: 0; color: #887d6e; font-size: 10px; }
+.auth-profile-history > p { padding: 9px 10px; }
+.auth-profile-state { color: #887d6e; font-size: 11px; }
+.auth-profile-state.error { color: #9b3028; }
+@media (max-width: 520px) { .auth-profile-facts { grid-template-columns: 1fr; } }

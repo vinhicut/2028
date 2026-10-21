@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import './App.css';
 
@@ -20,11 +20,20 @@ import PhaQuan from '../pages/baiviet/PhaQuan';
 import { PhongThuyWidget } from '../phongthuy/PhongThuyWidget';
 import QimenArticles from '../pages/qimen/QimenPage';
 import QuanLy from '../pages/admin/QuanLy';
+import ChatWidget from '../shared/ui/ChatWidget';
+import ArticleManager from '../pages/admin/ArticleManager';
+import PhatPhapPage from '../pages/articles/PhatPhapPage';
+import UserManagement from '../pages/admin/UserManagement';
 function App() {
   const { pathname } = useLocation();
 
+  useEffect(() => {
+    const referralCode = new URLSearchParams(window.location.search).get('ref');
+    if (referralCode) localStorage.setItem('tuvi_referral_code', referralCode.trim().toUpperCase());
+  }, []);
+
   if (pathname === '/' || pathname === '/home') {
-    return <Home />;
+    return <><Home /><ChatWidget /></>;
   }
 
   return (
@@ -34,6 +43,10 @@ function App() {
       <main className="main-content">
         <Routes>
           <Route path="/quan-ly" element={<QuanLy />} />
+          <Route path="/quan-ly/nguoi-dung" element={<UserManagement />} />
+          <Route path="/quan-ly/bai-viet" element={<ArticleManager />} />
+          <Route path="/phat-phap" element={<PhatPhapPage />} />
+          <Route path="/phat-phap/:slug" element={<PhatPhapPage />} />
           <Route
             path="/la-so-tu-vi"
             element={
@@ -63,11 +76,11 @@ function App() {
           <Route path="/ky-mon-don-giap" element={<QimenArticles />} />
           <Route path="/ky-mon-don-giap/:slug" element={<QimenArticles />} />
           <Route path="/than-so" element={<UnderDevelopment />} />
-          <Route path="/than-so-hoc" element={<UnderDevelopment />} />
         </Routes>
       </main>
 
       <Footer />
+      <ChatWidget />
     </div>
   );
 }

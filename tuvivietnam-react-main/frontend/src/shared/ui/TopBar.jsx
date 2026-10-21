@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AuthModal from '../../features/auth/AuthModal';
 import AdminModal from '../../features/admin-dashboard/AdminModal';
 import './TopBar.css';
 
 function TopBar() {
+  const navigate = useNavigate();
   const [authOpen, setAuthOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [user, setUser] = useState(null);
@@ -24,6 +26,18 @@ function TopBar() {
       if (saved) setUser(JSON.parse(saved));
     } catch {
       /* ignore */
+    }
+    const token = localStorage.getItem('tuvi_token');
+    if (token) {
+      fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
+        .then((response) => response.ok ? response.json() : null)
+        .then((result) => {
+          if (result?.user) {
+            setUser(result.user);
+            localStorage.setItem('tuvi_user', JSON.stringify(result.user));
+          }
+        })
+        .catch(() => {});
     }
   }, []);
 
@@ -69,7 +83,7 @@ function TopBar() {
                 <button
                   type="button"
                   className="btn-open-admin"
-                  onClick={() => setAdminOpen(true)}
+                  onClick={() => Number(user.admin_level || 2) === 1 ? setAdminOpen(true) : navigate('/quan-ly')}
                   title="Mở Bảng Điều Khiển Quản Lý"
                 >
                   ⚙ Quản trị

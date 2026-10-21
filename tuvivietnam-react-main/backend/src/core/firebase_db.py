@@ -1,11 +1,12 @@
 import os
 import json
+import secrets
 import datetime
 from typing import Optional, Dict, Any, List
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
-from core.config import FIREBASE_PROJECT_ID, FIREBASE_CREDENTIALS_PATH
+from core.config import FIREBASE_PROJECT_ID, FIREBASE_CREDENTIALS_PATH, SUPER_ADMIN_EMAILS
 
 # Global Firestore client
 db = None
@@ -40,28 +41,40 @@ def init_firebase() -> bool:
 
 # ----------------- User Queries -----------------
 
-def upsert_user(google_id: str, email: str, name: str, avatar: Optional[str], role: str = 'user') -> Dict[str, Any]:
+def upsert_user(google_id: str, email: str, name: str, avatar: Optional[str], role: str = 'user', referral_code: Optional[str] = None) -> Dict[str, Any]:
     now_str = datetime.datetime.now(datetime.timezone.utc).isoformat()
     users_ref = db.collection('users')
     
     # Check if user exists by google_id
     query = users_ref.where(filter=firestore.FieldFilter('google_id', '==', google_id)).limit(1).get()
+    if not query:
+        query = users_ref.where(filter=firestore.FieldFilter('email', '==', email.lower())).limit(1).get()
     
     if query:
         doc = query[0]
         user_data = doc.to_dict()
         user_id = doc.id
         final_role = user_data.get('role', 'user')
-        if final_role == 'manager':
-            pass # Keep manager role
-        else:
-            final_role = role
+        account_type = user_data.get('account_type', 'admin' if final_role == 'manager' else 'user')
+        admin_level = user_data.get('admin_level', 2 if final_role == 'manager' else 0)
+        if role == 'manager' and account_type != 'admin':
+            account_type, admin_level = 'admin', 2
+        if email.lower() in SUPER_ADMIN_EMAILS:
+            final_role, account_type, admin_level = 'manager', 'admin', 1
+        referred_by_user_id = user_data.get('referred_by_user_id')
+        if not referred_by_user_id and referral_code and str(user_data.get('google_id', '')).startswith('pending:'):
+            referrers = users_ref.where(filter=firestore.FieldFilter('referral_code', '==', referral_code.strip().upper())).limit(1).get()
+            if referrers and referrers[0].id != user_id and referrers[0].to_dict().get('account_type') == 'collaborator':
+                referred_by_user_id = referrers[0].id
             
         update_data = {
             'email': email,
             'name': name,
             'avatar': avatar,
             'role': final_role,
+            'account_type': account_type,
+            'admin_level': admin_level,
+            'referred_by_user_id': referred_by_user_id,
             'last_login_at': now_str
         }
         users_ref.document(user_id).update(update_data)
@@ -70,12 +83,22 @@ def upsert_user(google_id: str, email: str, name: str, avatar: Optional[str], ro
         return user_data
     else:
         # Create new user
+        account_type = 'admin' if role == 'manager' or email.lower() in SUPER_ADMIN_EMAILS else 'user'
+        referred_by_user_id = None
+        if referral_code:
+            referrers = users_ref.where(filter=firestore.FieldFilter('referral_code', '==', referral_code.strip().upper())).limit(1).get()
+            if referrers and referrers[0].to_dict().get('account_type') == 'collaborator':
+                referred_by_user_id = referrers[0].id
         new_user = {
             'google_id': google_id,
             'email': email,
             'name': name,
             'avatar': avatar,
-            'role': role,
+            'role': 'manager' if account_type == 'admin' else 'user',
+            'account_type': account_type,
+            'admin_level': (1 if email.lower() in SUPER_ADMIN_EMAILS else 2) if account_type == 'admin' else 0,
+            'referral_code': secrets.token_urlsafe(7).replace('-', '').replace('_', '').upper()[:9] if account_type == 'collaborator' else None,
+            'referred_by_user_id': referred_by_user_id,
             'created_at': now_str,
             'last_login_at': now_str
         }
@@ -237,12 +260,117 @@ def get_user_charts_list(user_id: str, limit: int = 20, offset: int = 0) -> List
 
 def admin_get_users(limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
     query = db.collection('users').order_by('created_at', direction=firestore.Query.DESCENDING).limit(limit).offset(offset).get()
+    all_users = db.collection('users').get()
+    users_by_id = {doc.id: doc.to_dict() for doc in all_users}
+    referral_counts = {}
+    for user in users_by_id.values():
+        referrer_id = user.get('referred_by_user_id')
+        if referrer_id:
+            referral_counts[str(referrer_id)] = referral_counts.get(str(referrer_id), 0) + 1
     results = []
     for doc in query:
         data = doc.to_dict()
         data['id'] = doc.id
+        data.setdefault('account_type', 'admin' if data.get('role') == 'manager' else 'user')
+        data.setdefault('admin_level', 2 if data.get('role') == 'manager' else 0)
+        if str(data.get('email', '')).lower() in SUPER_ADMIN_EMAILS:
+            data.update({'role': 'manager', 'account_type': 'admin', 'admin_level': 1})
+        referrer = users_by_id.get(str(data.get('referred_by_user_id')))
+        data['referrer_name'] = referrer.get('name') if referrer else None
+        data['referrer_email'] = referrer.get('email') if referrer else None
+        data['referred_users'] = referral_counts.get(doc.id, 0)
         results.append(data)
     return results
+
+
+def admin_get_user_detail(user_id: str) -> Optional[Dict[str, Any]]:
+    user_doc = db.collection('users').document(str(user_id)).get()
+    if not user_doc.exists:
+        return None
+    user = user_doc.to_dict()
+    user['id'] = user_doc.id
+    user.setdefault('account_type', 'admin' if user.get('role') == 'manager' else 'user')
+    user.setdefault('admin_level', 2 if user.get('role') == 'manager' else 0)
+    if str(user.get('email', '')).lower() in SUPER_ADMIN_EMAILS:
+        user.update({'role': 'manager', 'account_type': 'admin', 'admin_level': 1})
+    referrer_id = user.get('referred_by_user_id')
+    if referrer_id:
+        referrer_doc = db.collection('users').document(str(referrer_id)).get()
+        if referrer_doc.exists:
+            referrer = referrer_doc.to_dict()
+            user['referrer_name'] = referrer.get('name')
+            user['referrer_email'] = referrer.get('email')
+            user['referrer_code'] = referrer.get('referral_code')
+    user['referred_users'] = len(db.collection('users').where(filter=firestore.FieldFilter('referred_by_user_id', '==', str(user_id))).get())
+    charts = (db.collection('user_charts')
+              .where(filter=firestore.FieldFilter('user_id', '==', str(user_id)))
+              .order_by('updated_at', direction=firestore.Query.DESCENDING)
+              .limit(200).get())
+    user['services'] = []
+    for chart in charts:
+        item = chart.to_dict()
+        item['id'] = chart.id
+        item.pop('input_data', None)
+        item.pop('chart_data', None)
+        user['services'].append(item)
+    return user
+
+
+def admin_create_user(email: str, name: str, account_type: str = 'user') -> Dict[str, Any]:
+    users_ref = db.collection('users')
+    if users_ref.where(filter=firestore.FieldFilter('email', '==', email)).limit(1).get():
+        raise ValueError('Email này đã tồn tại.')
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    user = {
+        'google_id': f"pending:{secrets.token_urlsafe(18)}", 'email': email, 'name': name, 'avatar': None,
+        'role': 'manager' if account_type == 'admin' else 'user', 'account_type': account_type,
+        'admin_level': 2 if account_type == 'admin' else 0,
+        'referral_code': secrets.token_urlsafe(7).replace('-', '').replace('_', '').upper()[:9] if account_type == 'collaborator' else None,
+        'referred_by_user_id': None, 'created_at': now, 'last_login_at': now,
+    }
+    doc = users_ref.document()
+    doc.set(user)
+    user['id'] = doc.id
+    return user
+
+
+def admin_update_user(user_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    ref = db.collection('users').document(str(user_id))
+    doc = ref.get()
+    if not doc.exists:
+        return None
+    data = doc.to_dict()
+    patch = {key: value for key, value in updates.items() if key in {'name', 'account_type', 'admin_level', 'referred_by_user_id'}}
+    if patch.get('referred_by_user_id'):
+        referrer = db.collection('users').document(str(patch['referred_by_user_id'])).get()
+        if not referrer.exists or referrer.to_dict().get('account_type') != 'collaborator' or str(patch['referred_by_user_id']) == str(user_id):
+            raise ValueError('Người giới thiệu phải là một tài khoản cộng tác viên khác.')
+    if patch.get('account_type') == 'admin':
+        patch['role'] = 'manager'
+        patch['admin_level'] = patch.get('admin_level') or data.get('admin_level') or 2
+    elif patch.get('account_type') in ('user', 'collaborator'):
+        patch['role'] = 'user'
+        patch['admin_level'] = 0
+    if patch.get('account_type') == 'collaborator' and not data.get('referral_code'):
+        patch['referral_code'] = secrets.token_urlsafe(7).replace('-', '').replace('_', '').upper()[:9]
+    if patch:
+        ref.update(patch)
+        data.update(patch)
+    data['id'] = doc.id
+    return data
+
+
+def admin_delete_user(user_id: str) -> bool:
+    user_ref = db.collection('users').document(str(user_id))
+    if not user_ref.get().exists:
+        return False
+    for referred in db.collection('users').where(filter=firestore.FieldFilter('referred_by_user_id', '==', str(user_id))).get():
+        referred.reference.update({'referred_by_user_id': None})
+    for collection in ('sessions', 'user_charts'):
+        for doc in db.collection(collection).where(filter=firestore.FieldFilter('user_id', '==', str(user_id))).get():
+            doc.reference.delete()
+    user_ref.delete()
+    return True
 
 def admin_get_charts(limit: int = 50, offset: int = 0, search: Optional[str] = None) -> List[Dict[str, Any]]:
     query = db.collection('user_charts').order_by('updated_at', direction=firestore.Query.DESCENDING).limit(limit).offset(offset).get()

@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, g
 from core.node_api_proxy import proxy_customer_api
+from core.db import admin_get_user_detail
 from modules.auth.auth import (
     verify_google_id_token,
     issue_user_session,
@@ -34,7 +35,7 @@ def auth_google():
             "message": err_msg or "Xác thực tài khoản Google thất bại."
         }), 401
 
-    session_res = issue_user_session(user_info)
+    session_res = issue_user_session(user_info, referral_code=data.get("referral_code"))
     return jsonify({
         "status": "success",
         "message": f"Chào mừng {session_res['user']['name']} đã đăng nhập thành công!",
@@ -51,6 +52,15 @@ def auth_me():
         "status": "success",
         "user": g.current_user
     }), 200
+
+@auth_bp.route("/profile/details", methods=["GET"])
+@login_required
+def auth_profile_details():
+    """Return profile details for the authenticated user only."""
+    profile = admin_get_user_detail(str(g.current_user["id"]))
+    if not profile:
+        return jsonify({"status": "error", "message": "Không tìm thấy hồ sơ người dùng."}), 404
+    return jsonify({"status": "success", "data": profile}), 200
 
 @auth_bp.route("/logout", methods=["POST"])
 def auth_logout():

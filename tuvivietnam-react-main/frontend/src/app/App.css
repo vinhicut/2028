@@ -224,6 +224,17 @@ button:not(:where(.feng-shui-widget button)) {
   justify-content: center;
 }
 
+.user-avatar-placeholder-text {
+  display: grid;
+  place-items: center;
+  background: #f1f5f9;
+  color: #475569;
+  font-family: 'Be Vietnam Pro', Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .user-info-text {
   display: flex;
   flex-direction: column;
@@ -232,23 +243,24 @@ button:not(:where(.feng-shui-widget button)) {
 }
 
 .user-name-line {
-  font-family: 'Be Vietnam Pro', sans-serif;
+  font-family: 'Be Vietnam Pro', Arial, sans-serif;
   font-size: 11px;
   font-weight: 700;
   color: #1e293b;
-  text-transform: uppercase;
   line-height: 1.2;
-  letter-spacing: 0.3px;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .user-email-line {
-  font-family: 'Be Vietnam Pro', sans-serif;
+  font-family: 'Be Vietnam Pro', Arial, sans-serif;
   font-size: 10px;
   font-weight: 500;
   color: #64748b;
-  text-transform: uppercase;
   line-height: 1.2;
-  letter-spacing: 0.2px;
+  letter-spacing: normal;
   max-width: 130px;
   overflow: hidden;
   text-overflow: ellipsis;

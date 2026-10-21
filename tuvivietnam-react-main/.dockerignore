@@ -1,0 +1,16 @@
+.git
+.github
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+**/node_modules
+**/__pycache__
+**/*.pyc
+backend/data
+backend-node/storage/chart-images
+security/keys-and-secrets
+*.sqlite
+*.sqlite3
+*.db

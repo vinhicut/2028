@@ -3,15 +3,27 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
     container_name: tuvi_hongan_app
     restart: unless-stopped
     ports:
       - "2026:2026"
+    volumes:
+      - tuvi_app_data:/app/backend/data
     environment:
       HOST: 0.0.0.0
       PORT: 2026
-      CORS_ORIGIN: "*"
-      CUSTOMER_API_URL: ${CUSTOMER_API_URL:-http://host.docker.internal:3001}
+      CORS_ORIGIN: "${CORS_ORIGIN:-*}"
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in the project .env}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_IDS: ${GOOGLE_CLIENT_IDS:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-tu-vi-hong}
+      FIREBASE_CREDENTIALS_PATH: ${FIREBASE_CREDENTIALS_PATH:-/app/security/keys-and-secrets/firebase-service-account.json}
+      MANAGER_EMAILS: ${MANAGER_EMAILS:-admin@tuvihongan.com,quanly@tuvihongan.com,nguyenvinhvan90@gmail.com}
+      SUPER_ADMIN_EMAILS: ${SUPER_ADMIN_EMAILS:-}
+      CUSTOMER_API_URL: ${CUSTOMER_API_URL:-http://customer-api:3001}
       BOOKING_NOTIFICATION_EMAIL: ${BOOKING_NOTIFICATION_EMAIL:-nguyenvinhvan90@gmail.com}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
@@ -20,5 +32,13 @@ services:
       SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
       SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
       SMTP_USE_SSL: ${SMTP_USE_SSL:-false}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    networks:
+      - tuvi_app_network
+
+networks:
+  tuvi_app_network:
+    name: tuvi_app_network
+    external: true
+
+volumes:
+  tuvi_app_data:

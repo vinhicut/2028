@@ -7,14 +7,14 @@ PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, "..", "..", ".."))
 ENV_PATH = os.path.join(PROJECT_ROOT, "backend", ".env")
 if os.path.exists(ENV_PATH):
     try:
-        with open(ENV_PATH, "r", encoding="utf-8") as f:
+        with open(ENV_PATH, "r", encoding="utf-8-sig") as f:
             for line in f:
                 line = line.strip()
                 if line and not line.startswith("#") and "=" in line:
                     key, val = line.split("=", 1)
                     key = key.strip()
                     val = val.strip().strip("'\"")
-                    if key not in os.environ:
+                    if key not in os.environ or not os.environ[key].strip():
                         os.environ[key] = val
     except Exception:
         pass
@@ -33,10 +33,12 @@ FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "tu-vi-hong")
 FIREBASE_CREDENTIALS_PATH = os.getenv("FIREBASE_CREDENTIALS_PATH", os.path.join(PROJECT_ROOT, "security", "keys-and-secrets", "firebase-service-account.json"))
 
 # Google OAuth Configuration
-GOOGLE_CLIENT_ID = os.getenv(
-    "GOOGLE_CLIENT_ID",
-    "714306691526-iq2uodqu69fdcdalibn2ipgia2t4lqvs.apps.googleusercontent.com"
-)
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "").strip()
+GOOGLE_CLIENT_IDS_RAW = os.getenv("GOOGLE_CLIENT_IDS", "")
+GOOGLE_CLIENT_IDS = list(dict.fromkeys(
+    client_id.strip() for client_id in [GOOGLE_CLIENT_ID, *GOOGLE_CLIENT_IDS_RAW.split(",")]
+    if client_id.strip()
+))
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
 
 # Authorized URIs from client_secret + Local Dev URIs
@@ -62,6 +64,11 @@ MANAGER_EMAILS_RAW = os.getenv(
     "admin@tuvihongan.com,quanly@tuvihongan.com,nguyenvinhvan90@gmail.com",
 )
 MANAGER_EMAILS = [e.strip().lower() for e in MANAGER_EMAILS_RAW.split(",") if e.strip()]
+
+# Only these accounts receive unrestricted Admin 1 access. Existing manager
+# accounts are migrated as Admin 2 until an owner is explicitly configured.
+SUPER_ADMIN_EMAILS_RAW = os.getenv("SUPER_ADMIN_EMAILS", "")
+SUPER_ADMIN_EMAILS = [e.strip().lower() for e in SUPER_ADMIN_EMAILS_RAW.split(",") if e.strip()]
 
 # Server configuration
 HOST = os.getenv("HOST", "0.0.0.0")

@@ -6,8 +6,9 @@ from functools import wraps
 from flask import request, jsonify, g
 from typing import Optional, Dict, Any, Tuple
 
-from core.config import GOOGLE_CLIENT_ID, MANAGER_EMAILS
+from core.config import GOOGLE_CLIENT_IDS, MANAGER_EMAILS, SUPER_ADMIN_EMAILS
 from core.db import upsert_user, create_session, get_user_by_token, delete_session
+
 
 def verify_google_id_token(credential: str) -> Tuple[bool, Optional[Dict[str, Any]], Optional[str]]:
     """
@@ -26,7 +27,13 @@ def verify_google_id_token(credential: str) -> Tuple[bool, Optional[Dict[str, An
             payload = json.loads(response.read().decode("utf-8"))
 
         aud = payload.get("aud")
-        if not GOOGLE_CLIENT_ID or aud != GOOGLE_CLIENT_ID:
+        if not GOOGLE_CLIENT_IDS or aud not in GOOGLE_CLIENT_IDS:
+            # Client IDs are public identifiers; never log the credential or account data.
+            print(
+                f"Google sign-in audience mismatch: received aud={aud!r}; "
+                f"configured client IDs={GOOGLE_CLIENT_IDS!r}",
+                flush=True,
+            )
             return False, None, "Google ID token không được cấp cho ứng dụng này."
 
         email = payload.get("email")
@@ -59,7 +66,7 @@ def determine_user_role(email: str) -> str:
         return "manager"
     return "user"
 
-def issue_user_session(user_info: Dict[str, Any], forced_role: Optional[str] = None) -> Dict[str, Any]:
+def issue_user_session(user_info: Dict[str, Any], forced_role: Optional[str] = None, referral_code: Optional[str] = None) -> Dict[str, Any]:
     """Cấp phát session token cho người dùng đã xác thực."""
     role = forced_role if forced_role else determine_user_role(user_info["email"])
     user = upsert_user(
@@ -67,7 +74,8 @@ def issue_user_session(user_info: Dict[str, Any], forced_role: Optional[str] = N
         email=user_info["email"],
         name=user_info["name"],
         avatar=user_info.get("avatar"),
-        role=role
+        role=role,
+        referral_code=referral_code
     )
     token = secrets.token_hex(32)
     session_data = create_session(user["id"], token, days=30)
@@ -85,7 +93,14 @@ def get_current_user_from_request() -> Optional[Dict[str, Any]]:
     token = auth_header[7:].strip()
     if not token:
         return None
-    return get_user_by_token(token)
+    user = get_user_by_token(token)
+    if user:
+        is_admin = user.get('role') == 'manager' or user.get('account_type') == 'admin'
+        user.setdefault('account_type', 'admin' if is_admin else 'user')
+        user.setdefault('admin_level', 2 if is_admin else 0)
+        if str(user.get('email', '')).lower() in SUPER_ADMIN_EMAILS:
+            user.update({'role': 'manager', 'account_type': 'admin', 'admin_level': 1})
+    return user
 
 def login_required(f):
     """Decorator bắt buộc người dùng phải đăng nhập hợp lệ."""
@@ -120,6 +135,27 @@ def role_required(required_role: str):
                     "code": "FORBIDDEN",
                     "message": f"Yêu cầu quyền {required_role} để truy cập tài nguyên này."
                 }), 403
+            g.current_user = user
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
+def permission_required(permission: str):
+    """Enforce administrator capabilities on the server, regardless of UI state."""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            user = get_current_user_from_request()
+            if not user:
+                return jsonify({"status": "error", "code": "UNAUTHORIZED", "message": "Đăng nhập để tiếp tục."}), 401
+            is_admin = user.get('account_type') == 'admin' or user.get('role') == 'manager'
+            level = int(user.get('admin_level') or (2 if user.get('role') == 'manager' else 0))
+            allowed = is_admin and (
+                permission in ('users', 'articles', 'chat') or (permission == 'full' and level == 1)
+            )
+            if not allowed:
+                return jsonify({"status": "error", "code": "FORBIDDEN", "message": "Tài khoản không có quyền thực hiện thao tác này."}), 403
             g.current_user = user
             return f(*args, **kwargs)
         return decorated_function
