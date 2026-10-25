@@ -16,6 +16,8 @@ body{
   overflow-x:hidden;
 }
 header{text-align:center;height:120px;position:relative;pointer-events:none} h1, .subtitle{opacity:0;visibility:hidden;}
+body.deck-mode header{display:block;height:120px;padding:12px 0 0}
+body.deck-mode h1{opacity:0;visibility:hidden}
 header::before{display:none}
 h1{font-family:'Playfair Display',serif;font-size:clamp(1.6rem,5vw,2.5rem);color:var(--gold);text-shadow:0 2px 12px rgba(0,0,0,.7);letter-spacing:2px}
 .subtitle{font-size:.95rem;opacity:.85;margin-top:3px;font-style:italic}
@@ -60,6 +62,7 @@ h1{font-family:'Playfair Display',serif;font-size:clamp(1.6rem,5vw,2.5rem);color
 .spin-btn:disabled{opacity:.55;cursor:not-allowed}
 .result-number{font-size:1.4rem;color:var(--gold);min-height:36px;font-weight:700;letter-spacing:1px}
 .cards-title{text-align:center;font-size:1.25rem;color:var(--gold);margin:6px 0 16px}
+body:not(.deck-mode) .cards-title{display:none}
 .cards-title::after{content:"";display:block;width:90px;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:5px auto 0}
 .cards-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;justify-items:center}
 @media(max-width:900px){.cards-grid{grid-template-columns:repeat(2,1fr)}}
@@ -100,7 +103,7 @@ footer{text-align:center;padding:18px 12px 30px;font-size:.82rem;opacity:.65}
 <button class="spin-btn" id="spinBtn" onclick="spinWheel()">XIN QUẺ</button>
 <div class="result-number" id="resultText">Nhấn nút để quay số quẻ</div>
 </section>
-<!-- <h2 class="cards-title">Tám Quẻ Được Chọn</h2> -->
+<h2 class="cards-title" id="cardsTitle">Tám Quẻ Được Chọn</h2>
 <div class="cards-grid" id="cardsContainer"></div>
 </div>
 <footer>Tham vấn thi thánh Nguyễn Du • Đạo cô Tam Hợp • Sư trưởng Giác Duyên • Giáng tiên Thúy Kiều</footer>
@@ -128,6 +131,25 @@ Object.assign(queData,{
 });
 
 function imgSrc(n){
+  const deck = new URLSearchParams(window.location.search).get("deck");
+  if(deck === "giap-thien-di"){
+    return `cards-giap-thien-di/Que-${String(n).padStart(2, '0')}.png`;
+  }
+  if(["can-tai-loc", "kham-cong-danh", "can-nien-van"].includes(deck)){
+    return `cards-can-kham-can/${deck}/Que-${String(n).padStart(2, '0')}.png`;
+  }
+  if(["ly-binh-an", "khon-hon-nhan", "doai-thuong-mai"].includes(deck)){
+    return `cards-ly-khon-doai/${deck}/Que-${String(n).padStart(2, '0')}.png`;
+  }
+  if(["at-tat-benh", "binh-khoa-do", "dinh-tu-tuc", "mau-xuat-hanh"].includes(deck)){
+    return `cards-at-binh-dinh-mau/${deck}/Que-${String(n).padStart(2, '0')}.png`;
+  }
+  if(["ky-truy-tim", "canh-uu-tu", "tan-tham-yet", "nham-ky-nghe", "quy-tam-su"].includes(deck)){
+    return `cards-ky-canh-tan-nham-quy/${deck}/Que-${String(n).padStart(2, '0')}.png`;
+  }
+  if(deck === "chan-am-tin" || deck === "ton-tranh-tung"){
+    return `cards-chan-ton/${deck}/Que-${String(n).padStart(2, '0')}.png`;
+  }
   const padded = String(n).padStart(3, '0');
   return "cards/Que-" + padded + ".png";
 }
@@ -135,13 +157,42 @@ function imgSrc(n){
 // The artwork has 12 sectors; each spin assigns them 12 distinct quẻ from 1-210.
 const SEGMENTS = 12;
 const SEG_ANGLE = 360 / SEGMENTS; // 30 độ
+const activeDeck = new URLSearchParams(window.location.search).get("deck");
+const deckSize = ["giap-thien-di", "chan-am-tin", "ton-tranh-tung", "can-tai-loc", "kham-cong-danh", "can-nien-van", "ly-binh-an", "khon-hon-nhan", "doai-thuong-mai", "at-tat-benh", "binh-khoa-do", "dinh-tu-tuc", "mau-xuat-hanh", "ky-truy-tim", "canh-uu-tu", "tan-tham-yet", "nham-ky-nghe", "quy-tam-su"].includes(activeDeck) ? 15 : 210;
+const deckLabels = {
+  "giap-thien-di": "Giáp Thiên Di",
+  "chan-am-tin": "Chấn Âm Tín",
+  "ton-tranh-tung": "Tốn thanh trừng",
+  "can-tai-loc": "Càn Tài Lộc",
+  "kham-cong-danh": "Khảm Công Danh",
+  "can-nien-van": "Cấn Niên Vận",
+  "ly-binh-an": "Ly Bình An",
+  "khon-hon-nhan": "Khôn Hôn Nhân",
+  "doai-thuong-mai": "Đoài Thương Mại",
+  "at-tat-benh": "Ất Tật Bệnh",
+  "binh-khoa-do": "Bính Khoa Đỗ",
+  "dinh-tu-tuc": "Đinh Tử Tức",
+  "mau-xuat-hanh": "Mậu Xuất Hành",
+  "ky-truy-tim": "Kỷ Truy Tìm",
+  "canh-uu-tu": "Canh Ưu Tú",
+  "tan-tham-yet": "Tân Thám Yết",
+  "nham-ky-nghe": "Nhâm Kỹ Nghệ",
+  "quy-tam-su": "Quý Tâm Sự"
+};
+if(deckLabels[activeDeck]){
+  document.body.classList.add("deck-mode");
+  const groupLabel = activeDeck === "giap-thien-di" ? "Giáp Thiên Di" : ["can-tai-loc", "kham-cong-danh", "can-nien-van"].includes(activeDeck) ? "Càn Khảm Cấn" : ["ly-binh-an", "khon-hon-nhan", "doai-thuong-mai"].includes(activeDeck) ? "Ly Khôn Đoài" : ["at-tat-benh", "binh-khoa-do", "dinh-tu-tuc", "mau-xuat-hanh"].includes(activeDeck) ? "Ất Bính Đinh Mậu" : ["ky-truy-tim", "canh-uu-tu", "tan-tham-yet", "nham-ky-nghe", "quy-tam-su"].includes(activeDeck) ? "Kỷ Canh Tân Nhâm Quý" : "Chấn Tốn";
+  document.querySelector("header .subtitle").textContent = "Bộ quẻ " + groupLabel + " • " + deckSize + " quẻ";
+  document.getElementById("cardsTitle").textContent = "Các quẻ " + deckLabels[activeDeck];
+  document.title = "Tử Vi Hồng Ân - " + deckLabels[activeDeck];
+}
 let currentNumbers = [];
 let currentRotation = 0; // góc quay hiện tại của wheel (độ)
 
 function buildWheelNumbers(){
   const selectedNumbers = new Set();
   while(selectedNumbers.size < SEGMENTS){
-    selectedNumbers.add(Math.floor(Math.random() * 210) + 1);
+    selectedNumbers.add(Math.floor(Math.random() * deckSize) + 1);
   }
   currentNumbers = Array.from(selectedNumbers);
 
@@ -179,7 +230,7 @@ function spinWheel(){
   resultText.textContent = "Đang bốc quẻ...";
   center.textContent = "...";
 
-  // Randomize all 12 displayed labels from the full range of 210 quẻ.
+  // Randomize all 12 displayed labels from the active deck.
   buildWheelNumbers();
 
   // Select one of the displayed numbers so the pointer and result always match.
@@ -216,7 +267,7 @@ function showEightCards(mainNum){
   container.innerHTML = "";
   const others = new Set();
   while(others.size < 7){
-    const n = Math.floor(Math.random()*210)+1;
+    const n = Math.floor(Math.random()*deckSize)+1;
     if(n !== mainNum) others.add(n);
   }
   const nums = [mainNum].concat(Array.from(others));
@@ -265,7 +316,7 @@ document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeMo
 
 window.onload = function(){
   buildWheelNumbers();
-  showEightCards(Math.floor(Math.random()*210)+1);
+  showEightCards(Math.floor(Math.random()*deckSize)+1);
 };
 </script>
 </body>

@@ -21,16 +21,19 @@ export const PhongThuyWidget = ({
   const [isSingle, setIsSingle] = useState(initialIsSingle);
   const [husbandYear, setHusbandYear] = useState(initialHusbandYear);
   const [wifeYear, setWifeYear] = useState(initialWifeYear);
+  const [singleGender, setSingleGender] = useState('male');
 
   const husbandData = getYearDetails(husbandYear);
   const wifeData = getYearDetails(wifeYear);
+  const singleOwnerData = getYearDetails(singleGender === 'male' ? husbandYear : wifeYear);
 
   const handlePrint = () => {
     window.print();
   };
 
-  const handleSelectPotentialSpouse = (potentialWifeYear) => {
-    setWifeYear(potentialWifeYear);
+  const handleSelectPotentialSpouse = (potentialYear) => {
+    if (singleGender === 'male') setWifeYear(potentialYear);
+    else setHusbandYear(potentialYear);
     setIsSingle(false);
     setActiveTab('spouse');
   };
@@ -52,6 +55,8 @@ export const PhongThuyWidget = ({
           wifeData={wifeData}
           isSingle={isSingle}
           setIsSingle={setIsSingle}
+          singleGender={singleGender}
+          setSingleGender={setSingleGender}
         />
 
         {/* Dynamic Tab Switch */}
@@ -174,7 +179,8 @@ export const PhongThuyWidget = ({
 
         {activeTab === 'single' && isSingle && (
           <SingleHomeownerGuide
-            husbandData={husbandData}
+            homeownerData={singleOwnerData}
+            isFemale={singleGender === 'female'}
             onSelectPotentialSpouse={handleSelectPotentialSpouse}
           />
         )}

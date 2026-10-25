@@ -11,7 +11,7 @@ RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
-# Run the Flask API and serve the built frontend.
+# Run the production Flask API and serve the built frontend.
 FROM python:3.11-slim
 WORKDIR /app
 
@@ -22,7 +22,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     CORS_ORIGIN=*
 
 COPY backend/requirements.txt ./backend/requirements.txt
-RUN pip install --no-cache-dir -r backend/requirements.txt
+RUN pip install --no-cache-dir -r backend/requirements.txt gunicorn
 
 COPY backend/ ./backend/
 COPY --from=frontend-builder /app/releases/dist ./releases/dist
@@ -33,4 +33,4 @@ EXPOSE 2026
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:2026/api/health')" || exit 1
 
-CMD ["python", "backend/src/server.py"]
+CMD ["gunicorn", "--chdir", "/app/backend/src", "--workers", "2", "--threads", "4", "--bind", "0.0.0.0:2026", "server:create_app()"]

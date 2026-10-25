@@ -199,12 +199,14 @@ def save_user_chart(
         'updated_at': now_str
     }
     
-    # Try to find existing chart by chart_code
+    # Reuse a matching chart only when it belongs to this user. Chart codes
+    # can collide, so matching globally could overwrite another user's record.
     charts_ref = db.collection('user_charts')
-    query = charts_ref.where(filter=firestore.FieldFilter('chart_code', '==', chart_code)).limit(1).get()
+    query = charts_ref.where(filter=firestore.FieldFilter('chart_code', '==', chart_code)).get()
+    existing_chart = next((doc for doc in query if str(doc.to_dict().get('user_id')) == str(user_id)), None)
     
-    if query:
-        doc_id = query[0].id
+    if existing_chart:
+        doc_id = existing_chart.id
         chart_doc.pop('created_at', None) # Don't update created_at
         charts_ref.document(doc_id).update(chart_doc)
         chart_id = doc_id

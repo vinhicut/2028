@@ -26,8 +26,28 @@ function AuthModal({ open, onClose, user, onAuthSuccess, onLogout }) {
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.message || 'Không tải được thông tin hồ sơ.');
       return result.data;
-    }).then((data) => {
-      if (active) setProfileDetails(data);
+    }).then(async (data) => {
+      const token = localStorage.getItem('tuvi_token') || '';
+      let legacyServices = [];
+      try {
+        const logsResponse = await fetch(`${API}/api/auth/profile/chart-logs`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (logsResponse.ok) {
+          const logsResult = await logsResponse.json().catch(() => ({}));
+          legacyServices = Array.isArray(logsResult.data) ? logsResult.data : [];
+        }
+      } catch (logsError) {
+        console.warn('Could not load legacy chart history:', logsError);
+      }
+
+      const savedServices = Array.isArray(data.services) ? data.services : [];
+      const knownCodes = new Set(savedServices.map((service) => service.chart_code).filter(Boolean));
+      const services = [
+        ...savedServices,
+        ...legacyServices.filter((service) => !service.chart_code || !knownCodes.has(service.chart_code)),
+      ].sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0));
+      if (active) setProfileDetails({ ...data, services });
     }).catch((loadError) => {
       if (active) setProfileError(loadError.message || 'Không tải được thông tin hồ sơ.');
     }).finally(() => {

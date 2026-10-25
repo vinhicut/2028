@@ -10,24 +10,29 @@ import {
 import { evaluateSpouseCompatibility } from './fengShuiLogic';
 
 export const SingleHomeownerGuide = ({
-  husbandData,
+  homeownerData,
+  isFemale = false,
   onSelectPotentialSpouse,
 }) => {
   const candidateYears = Array.from(
     { length: 15 },
-    (_, i) => husbandData.year - 8 + i
+    (_, i) => homeownerData.year - 8 + i
   ).filter((y) => y >= 1950 && y <= 2026);
 
   const bestMatches = candidateYears
-    .map((wYear) => evaluateSpouseCompatibility(husbandData.year, wYear))
+    .map((candidateYear) => isFemale
+      ? evaluateSpouseCompatibility(candidateYear, homeownerData.year)
+      : evaluateSpouseCompatibility(homeownerData.year, candidateYear))
     .sort((a, b) => b.score - a.score)
     .slice(0, 6);
+  const ownerCung = isFemale ? homeownerData.femaleCung : homeownerData.maleCung;
+  const ownerGroup = isFemale ? homeownerData.femaleGroup : homeownerData.maleGroup;
 
   let peachBlossomDirection = 'Đông';
   let peachBlossomAnimal = 'Mão';
   let peachBlossomCure = 'Đặt bình hoa tươi màu xanh hoặc nuôi cá cảnh bơi lội';
 
-  const chi = husbandData.chi;
+  const chi = homeownerData.chi;
   if (['Dần', 'Ngọ', 'Tuất'].includes(chi)) {
     peachBlossomDirection = 'Đông (90°)';
     peachBlossomAnimal = 'Mão';
@@ -54,13 +59,13 @@ export const SingleHomeownerGuide = ({
         <div className="relative z-10 max-w-3xl">
           <div className="flex items-center gap-2 text-xs font-semibold text-[#DB2777] mb-2 uppercase tracking-wide">
             <Sparkles className="w-4 h-4" />
-            <span>Chuyên Đề Cho Nam Gia Chủ Độc Thân (Chưa Lập Gia Đình)</span>
+            <span>Chuyên Đề Cho {isFemale ? 'Nữ' : 'Nam'} Gia Chủ Độc Thân (Chưa Lập Gia Đình)</span>
           </div>
           <h2 className="font-serif-heading text-2xl sm:text-3xl font-bold text-[#1F1914] mb-3">
-            Kích Hoạt Đào Hoa Tình Duyên & Định Hướng Không Gian Sống
+            {isFemale ? 'Kích Hoạt Đào Hoa Tình Duyên Cho Nữ Gia Chủ' : 'Kích Hoạt Đào Hoa Tình Duyên & Định Hướng Không Gian Sống'}
           </h2>
           <p className="text-sm text-[#4A4239] leading-relaxed mb-6">
-            Gia chủ tuổi <strong>{husbandData.canChi} ({husbandData.year})</strong> khi chưa lập gia đình, toàn bộ trường khí ngôi nhà được định hướng 100% theo bản mệnh <strong>Cung {husbandData.maleCung} ({husbandData.maleGroup})</strong> của chính bạn. Đây là giai đoạn vàng để xây dựng nền tảng sự nghiệp vững chắc đồng thời kích hoạt vị trí Đào Hoa Vị để sớm gặp ý trung nhân tâm đầu ý hợp.
+            Gia chủ tuổi <strong>{homeownerData.canChi} ({homeownerData.year})</strong> khi chưa lập gia đình, trường khí ngôi nhà được tham khảo theo bản mệnh <strong>Cung {ownerCung} ({ownerGroup})</strong>. Có thể chú trọng không gian sống hài hòa, nuôi dưỡng các mối quan hệ và tạo điều kiện gặp gỡ người phù hợp.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -78,7 +83,7 @@ export const SingleHomeownerGuide = ({
 
             <div className="bg-[#F0FDF4] border border-[#BBF7D0] rounded-xl p-4">
               <span className="text-xs font-bold text-[#166534] uppercase tracking-wider block mb-1">
-                Nguyên Tắc Nhà Cho Nam Độc Thân:
+                Nguyên Tắc Nhà Cho {isFemale ? 'Nữ' : 'Nam'} Độc Thân:
               </span>
               <div className="text-lg font-serif-heading font-bold text-[#15803D]">
                 Dương Trạch Độc Tôn · Vượng Khí
@@ -100,7 +105,7 @@ export const SingleHomeownerGuide = ({
               <span>Tra Cứu Nhân Duyên Tiền Định</span>
             </div>
             <h3 className="font-serif-heading text-xl font-bold text-[#1F1914]">
-              Top Tuổi Nữ Hợp Nhất Với Nam {husbandData.canChi} ({husbandData.year})
+              Top Tuổi {isFemale ? 'Nam Hợp Nhất Với Nữ' : 'Nữ Hợp Nhất Với Nam'} {homeownerData.canChi} ({homeownerData.year})
             </h3>
             <span className="text-xs text-[#7A6F64]">
               Được tự động tính toán đối chiếu qua 4 trụ cột: Bát Trạch Du Niên, Ngũ Hành Nạp Âm, Thiên Can và Tam Hợp Địa Chi
@@ -115,10 +120,10 @@ export const SingleHomeownerGuide = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {bestMatches.map((match, idx) => {
-            const { wife } = match;
+            const candidate = isFemale ? match.husband : match.wife;
             return (
               <div
-                key={wife.year}
+                key={candidate.year}
                 className="bg-[#FFFFFF] border border-[#E2DBD0] rounded-xl p-5 hover:border-[#9E2A1E] transition-all shadow-2xs flex flex-col justify-between"
               >
                 <div>
@@ -129,11 +134,11 @@ export const SingleHomeownerGuide = ({
                           {idx + 1}
                         </span>
                         <h4 className="font-serif-heading text-lg font-bold text-[#1F1914]">
-                          Nữ Tuổi {wife.canChi}
+                          {isFemale ? 'Nam' : 'Nữ'} Tuổi {candidate.canChi}
                         </h4>
                       </div>
                       <span className="text-xs text-[#7A6F64] ml-6.5 block">
-                        Sinh năm {wife.year} (Mệnh {wife.element} · Cung {wife.femaleCung})
+                        Sinh năm {candidate.year} (Mệnh {candidate.element} · Cung {isFemale ? candidate.maleCung : candidate.femaleCung})
                       </span>
                     </div>
 
@@ -172,7 +177,7 @@ export const SingleHomeownerGuide = ({
                 </div>
 
                 <button
-                  onClick={() => onSelectPotentialSpouse(wife.year)}
+                  onClick={() => onSelectPotentialSpouse(candidate.year)}
                   className="w-full py-2 bg-[#FAF5EE] hover:bg-[#9E2A1E] hover:text-white text-[#9E2A1E] border border-[#E6D8C8] hover:border-[#9E2A1E] rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <UserCheck className="w-3.5 h-3.5" />
@@ -188,7 +193,7 @@ export const SingleHomeownerGuide = ({
       <div className="bg-[#FFFFFF] border border-[#E4DED4] rounded-2xl p-6 sm:p-8 shadow-xs">
         <h3 className="font-serif-heading text-lg font-bold text-[#1F1914] mb-3 flex items-center gap-2">
           <Award className="w-5 h-5 text-[#9E2A1E]" />
-          <span>4 Điều Phong Thủy Cần Nhớ Khi Nam Gia Chủ Độc Thân Xây Sửa Nhà</span>
+          <span>4 Điều Phong Thủy Cần Nhớ Khi {isFemale ? 'Nữ' : 'Nam'} Gia Chủ Độc Thân Xây Sửa Nhà</span>
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs leading-relaxed text-[#4A4239]">

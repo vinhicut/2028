@@ -9,7 +9,7 @@ const coreTools = [
   { label: 'KỲ MÔN', to: '/ky-mon-don-giap' },
   { label: 'PHONG THỦY', to: '/la-kinh-phong-thuy' },
   { label: 'LỊCH VẠN SỰ', to: '/lich-van-su' },
-  { label: 'PHẬT PHAP', to: '/phat-phap' },
+  { label: 'PHẬT PHÁP', to: '/phat-phap' },
 ];
 
 function Navbar() {

@@ -43,6 +43,8 @@ GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
 
 # Authorized URIs from client_secret + Local Dev URIs
 GOOGLE_REDIRECT_URIS = [
+    "https://tuvihongan.com/",
+    "https://www.tuvihongan.com/",
     "http://tuvihongan.com/",
     "http://localhost:5173/",
     "http://localhost:8080/",
@@ -51,6 +53,8 @@ GOOGLE_REDIRECT_URIS = [
 ]
 
 GOOGLE_JAVASCRIPT_ORIGINS = [
+    "https://tuvihongan.com",
+    "https://www.tuvihongan.com",
     "http://tuvihongan.com",
     "http://localhost:5173",
     "http://localhost:8080",

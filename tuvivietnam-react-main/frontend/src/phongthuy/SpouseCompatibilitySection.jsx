@@ -181,11 +181,19 @@ export const SpouseCompatibilitySection = ({
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-[#FFFFFF] p-5 rounded-xl border border-[#E5DFD5] shadow-2xs">
+          <div
+            className="bg-[#FFFFFF] p-5 rounded-xl border border-[#E5DFD5] shadow-2xs"
+            style={{ fontFamily: "'Be Vietnam Pro', sans-serif" }}
+          >
             <div className="w-8 h-8 rounded-lg bg-[#FAF4ED] text-[#9E2A1E] flex items-center justify-center mb-3">
               <Home className="w-4 h-4" />
             </div>
-            <h4 className="text-sm font-bold text-[#1F1914] mb-1">Hướng Bếp Hóa Giải</h4>
+            <h4
+              className="text-sm font-bold text-[#1F1914] mb-1"
+              style={{ fontFamily: "'Be Vietnam Pro', sans-serif" }}
+            >
+              Hướng Bếp Hóa Giải
+            </h4>
             <p className="text-xs text-[#524940] leading-relaxed">
               Đặt bếp quay về hướng tốt theo cung mệnh của người chồng. Bếp mang tính Hỏa có công năng thiêu đốt tà khí, hóa hung thành cát, giúp gia đình ấm êm.
             </p>

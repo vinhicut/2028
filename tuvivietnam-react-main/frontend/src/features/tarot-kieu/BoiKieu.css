@@ -5,11 +5,78 @@
   padding: 0 0 20px 0;
 }
 
-.boikieu-breadcrumb {
-  font-size: 13px;
-  color: #888;
-  margin-bottom: 12px;
+.boikieu-navigation {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 0 12px;
+  border-bottom: 1px solid #e6e1d9;
+}
+
+.boikieu-nav-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
   padding: 0 8px;
+}
+
+.boikieu-nav-item button {
+  display: block;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #55452f;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0 10px;
+}
+
+.boikieu-nav-item button:hover,
+.boikieu-nav-item button:focus-visible {
+  border-bottom-color: #9a7135;
+  color: #8a6127;
+  outline: none;
+}
+
+.boikieu-nav-item.has-dropdown {
+  position: relative;
+}
+
+.boikieu-nav-item .boikieu-caret {
+  margin-left: 6px;
+  font-size: 11px;
+}
+
+.boikieu-dropdown {
+  position: absolute;
+  z-index: 20;
+  top: 100%;
+  left: 0;
+  min-width: 190px;
+  padding: 5px 0;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #e6e1d9;
+  border-radius: 4px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .15);
+}
+
+.boikieu-nav-item .boikieu-dropdown button {
+  width: 100%;
+  padding: 10px 14px;
+  border: 0;
+  color: #55452f;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.boikieu-nav-item .boikieu-dropdown button:hover,
+.boikieu-nav-item .boikieu-dropdown button:focus-visible {
+  background: #f7f2e9;
 }
 
 .boikieu-iframe-wrap {

@@ -2,8 +2,6 @@ import React from 'react';
 import { Calendar, User, Heart, Sparkles, Check } from 'lucide-react';
 import { getYearDetails } from './sixtyHoaGiap';
 
-const COMMON_YEARS = [1984, 1986, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1998, 2000];
-
 export const SelectorBar = ({
   husbandYear,
   setHusbandYear,
@@ -13,6 +11,8 @@ export const SelectorBar = ({
   wifeData,
   isSingle,
   setIsSingle,
+  singleGender,
+  setSingleGender,
 }) => {
   const years = Array.from({ length: 82 }, (_, i) => 2026 - i);
 
@@ -63,23 +63,27 @@ export const SelectorBar = ({
           <label className="flex items-center justify-between text-xs font-semibold text-[#5A5147] mb-2 uppercase tracking-wider">
             <span className="flex items-center gap-1.5">
               <User className="w-4 h-4 text-[#9E2A1E]" />
-              Năm Sinh Nam Gia Chủ (Dương Lịch)
+              {isSingle && singleGender === 'female' ? 'Năm Sinh Nữ Gia Chủ (Dương Lịch)' : 'Năm Sinh Nam Gia Chủ (Dương Lịch)'}
             </span>
             <span className="text-[#9E2A1E] font-bold">
-              {husbandData.canChi} · {husbandData.element}
+              {(isSingle && singleGender === 'female' ? wifeData : husbandData).canChi} · {(isSingle && singleGender === 'female' ? wifeData : husbandData).element}
             </span>
           </label>
+          {isSingle && <div className="mb-2 flex gap-2">
+            <button type="button" onClick={() => setSingleGender('male')} className={`rounded-lg px-3 py-1 text-xs font-semibold ${singleGender === 'male' ? 'bg-[#9E2A1E] text-white' : 'bg-[#FAF6F0] text-[#645A50]'}`}>Nam gia chủ</button>
+            <button type="button" onClick={() => setSingleGender('female')} className={`rounded-lg px-3 py-1 text-xs font-semibold ${singleGender === 'female' ? 'bg-[#DB2777] text-white' : 'bg-[#FAF6F0] text-[#645A50]'}`}>Nữ gia chủ</button>
+          </div>}
           <div className="relative">
             <select
-              value={husbandYear}
-              onChange={(e) => setHusbandYear(Number(e.target.value))}
+              value={isSingle && singleGender === 'female' ? wifeYear : husbandYear}
+              onChange={(e) => (isSingle && singleGender === 'female' ? setWifeYear : setHusbandYear)(Number(e.target.value))}
               className="w-full bg-[#FAF7F2] border border-[#DED7CB] rounded-xl px-4 py-3 text-base text-[#1F1914] font-medium appearance-none focus:outline-none focus:border-[#9E2A1E] focus:ring-1 focus:ring-[#9E2A1E] transition-all cursor-pointer shadow-2xs"
             >
               {years.map((y) => {
                 const info = getYearDetails(y);
                 return (
                   <option key={`m-${y}`} value={y} className="bg-[#FFFFFF] text-[#1F1914]">
-                    Năm {y} - {info.canChi} ({info.element} - Cung {info.maleCung})
+                    Năm {y} - {info.canChi} ({info.element} - Cung {isSingle && singleGender === 'female' ? info.femaleCung : info.maleCung})
                   </option>
                 );
               })}
@@ -142,29 +146,6 @@ export const SelectorBar = ({
         </div> */}
       </div>
 
-      {/* Lối tắt chọn nhanh các năm sinh phổ biến */}
-      <div className="mt-4 pt-3.5 border-t border-[#F0EAE1] flex flex-wrap items-center gap-1.5">
-        <span className="text-[11px] text-[#7A6F64] font-medium mr-1 flex items-center gap-1">
-          <Calendar className="w-3 h-3 text-[#9E2A1E]" /> Chọn nhanh tuổi nam:
-        </span>
-        {COMMON_YEARS.map((y) => {
-          const isSelected = husbandYear === y;
-          const yData = getYearDetails(y);
-          return (
-            <button
-              key={y}
-              onClick={() => setHusbandYear(y)}
-              className={`px-2.5 py-1 text-xs rounded-lg transition-all cursor-pointer ${
-                isSelected
-                  ? 'bg-[#9E2A1E] text-white font-semibold shadow-xs'
-                  : 'bg-[#FAF7F2] text-[#554C42] border border-[#E0D8CB] hover:bg-[#F2ECE1] hover:text-[#1F1914]'
-              }`}
-            >
-              {y} ({yData.canChi.split(' ')[1]})
-            </button>
-          );
-        })}
-      </div>
     </div>
   );
 };

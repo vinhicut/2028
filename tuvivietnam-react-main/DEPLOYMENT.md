@@ -1,28 +1,29 @@
-# Docker deployment
+# Triển khai tuvihongan.com bằng Docker
 
-## Before starting
+Stack root chạy frontend, Flask API, Node Customer API, MySQL và Caddy. Caddy nhận traffic công khai, tự cấp/gia hạn HTTPS cho `tuvihongan.com` và `www.tuvihongan.com`, rồi chuyển tiếp API đến đúng backend. MySQL và Customer API chỉ ở mạng Docker nội bộ.
 
-1. Copy `.env.server.example` to `.env` in the project root. Replace all example credentials with production values, including the Google OAuth client ID and secret. Keep `.env` private and out of Git.
-2. Install Docker Engine and the Docker Compose plugin on the server.
-3. Create the shared network once: `docker network create tuvi_app_network`.
-4. If the app uses Firebase, place the service account JSON on the server and add a read-only bind mount for it under `tuvi-website.volumes` in the root `docker-compose.yml`, targeting the configured `FIREBASE_CREDENTIALS_PATH`. Do not add that credential to the image or Git. Without it, the backend falls back to its local SQLite database.
+## Chuẩn bị server
 
-## Start
+1. Cài Docker Engine và Docker Compose plugin.
+2. Trỏ bản ghi DNS `A` của `tuvihongan.com` và `www.tuvihongan.com` về IP server. Nếu có bản ghi `AAAA`, nó cũng phải trỏ đúng server.
+3. Mở cổng TCP `80` và `443` trên firewall/security group. Caddy cần truy cập được các cổng này để cấp chứng chỉ HTTPS.
+4. Tạo `.env` từ `.env.server.example`, rồi thay `SECRET_KEY`, mật khẩu MySQL, Google OAuth và SMTP bằng giá trị production. Giữ `.env` riêng tư.
+5. Trong Google OAuth, thêm `https://tuvihongan.com` (và `https://www.tuvihongan.com` nếu dùng) vào Authorized JavaScript origins.
 
-From the project root, start the Flask website:
+## Khởi chạy
+
+Tại thư mục gốc dự án:
 
 ```sh
 docker compose up -d --build
+docker compose ps
+docker compose logs -f caddy web customer-api
 ```
 
-Then start MySQL, the Node API and phpMyAdmin:
+Mở `https://tuvihongan.com`. Caddy sẽ tự xin chứng chỉ sau khi DNS đã trỏ đúng và cổng `80`/`443` truy cập được.
 
-```sh
-docker compose --env-file ../.env up -d --build
-```
+## Dữ liệu và cập nhật
 
-Run the second command from `backend-node/`. Both stacks join `tuvi_app_network`. The website calls `customer-api:3001`; the Node API calls `tuvi_hongan_app:2026` for manager session checks. MySQL and phpMyAdmin remain bound to the server's loopback interface. phpMyAdmin is available on the server at port `8082` and should be reached remotely through SSH tunneling or VPN. The website SQLite fallback and MySQL database use Docker volumes so container recreation does not erase them.
+Các volume `tuvi_mysql_data`, `tuvi_app_data` và `tuvi_chart_images` giữ dữ liệu qua lần rebuild. Sao lưu các volume này định kỳ; không dùng `docker compose down -v` khi muốn giữ dữ liệu. Firebase service account, nếu dùng, cần được mount read-only vào container `web` tại đường dẫn khớp `FIREBASE_CREDENTIALS_PATH`.
 
-## Backups and updates
-
-Back up the MySQL Docker volume `tuvi_mysql_data` and the Firebase data separately. Updating/rebuilding containers keeps named volumes, but deleting the MySQL volume deletes its database. To inspect service status, use `docker compose ps` from the root and `docker compose --env-file ../.env ps` from `backend-node/`.
+Để cập nhật phiên bản, lấy source mới rồi chạy lại `docker compose up -d --build`. Caddy lưu chứng chỉ trong volume `tuvi_caddy_data`.

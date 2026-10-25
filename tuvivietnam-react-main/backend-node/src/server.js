@@ -495,6 +495,23 @@ app.post('/api/customer-logs/charts', async (req, res) => {
   }
 });
 
+app.get('/api/customer-logs/my-charts', async (req, res) => {
+  try {
+    const user = await resolveSessionUser(req.get('authorization'));
+    if (!user) return res.status(401).json({ status: 'error', message: 'Phiên đăng nhập không hợp lệ.' });
+    const [rows] = await pool.execute(
+      `SELECT id, customer_name AS ho_ten, chart_code, created_at
+       FROM customer_chart_logs WHERE LOWER(customer_email) = LOWER(?)
+       ORDER BY created_at DESC, id DESC LIMIT 200`,
+      [user.email],
+    );
+    res.json({ status: 'success', data: rows });
+  } catch (error) {
+    console.error("Could not read customer's chart history:", error.message);
+    res.status(503).json({ status: 'error', message: 'Không tải được lịch sử lá số.' });
+  }
+});
+
 app.get('/api/admin/customer-logs/charts', requireSuperAdmin, async (req, res) => {
   const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 50, 1), 100);
   const offset = Math.max(Number.parseInt(req.query.offset, 10) || 0, 0);

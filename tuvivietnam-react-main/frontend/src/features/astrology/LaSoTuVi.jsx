@@ -125,6 +125,40 @@ function LaSoTuVi() {
 
       try {
         const token = localStorage.getItem('tuvi_token');
+        // Keep the authenticated user's saved-chart history in the same store
+        // that feeds the profile popup. The customer log below is a separate
+        // admin workflow and does not populate that history.
+        if (token) {
+          const input = event.data.input_data || {};
+          try {
+            const saveResponse = await fetch('/api/user/charts', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                chart_code: event.data.chart_code,
+                ho_ten: input.name,
+                gioi_tinh: input.gender,
+                ngay_sinh: input.day,
+                thang_sinh: input.month,
+                nam_sinh: input.year,
+                gio_sinh: input.hour,
+                phut_sinh: input.minute,
+                loai_lich: (input.is_solar ?? input.isSolar) ? 'duong_lich' : 'am_lich',
+                thang_nhuan: input.is_leap_month_input ?? input.isLeapMonthInput,
+                nam_xem_han: input.limit_year ?? input.limitYear,
+                input_data: input,
+                chart_data: event.data.chart_data,
+              }),
+            });
+            if (!saveResponse.ok) throw new Error(`HTTP ${saveResponse.status}`);
+          } catch (saveError) {
+            console.error('Không thể lưu lá số vào hồ sơ người dùng:', saveError);
+          }
+        }
+
         const response = await fetch('/api/customer-logs/charts', {
           method: 'POST',
           headers: {

@@ -62,6 +62,12 @@ def auth_profile_details():
         return jsonify({"status": "error", "message": "Không tìm thấy hồ sơ người dùng."}), 404
     return jsonify({"status": "success", "data": profile}), 200
 
+@auth_bp.route("/profile/chart-logs", methods=["GET"])
+@login_required
+def auth_profile_chart_logs():
+    """Return legacy chart selection logs for the authenticated account."""
+    return proxy_customer_api("/api/customer-logs/my-charts")
+
 @auth_bp.route("/logout", methods=["POST"])
 def auth_logout():
     """Đăng xuất và hủy token phiên làm việc."""
