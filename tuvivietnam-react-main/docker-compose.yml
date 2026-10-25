@@ -1,5 +1,6 @@
 services:
-  web:
+  tuvi-website:
+    container_name: tuvi_hongan_app
     build:
       context: .
       dockerfile: Dockerfile
@@ -7,7 +8,7 @@ services:
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
     restart: unless-stopped
     ports:
-      - "127.0.0.1:2026:2026"
+      - "2028:2026"
     volumes:
       - tuvi_app_data:/app/backend/data
     environment:
@@ -63,8 +64,8 @@ services:
       context: ./backend-node
       dockerfile: Dockerfile
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:3002:3001"
+    expose:
+      - "3001"
     environment:
       PORT: 3001
       CORS_ORIGIN: ${CORS_ORIGIN:-https://tuvihongan.com}
@@ -73,7 +74,7 @@ services:
       DB_NAME: ${DB_NAME:-tuvi_hongan}
       DB_USER: ${DB_USER:-tuvi_app}
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the project .env}
-      AUTH_ME_URL: http://web:2026/api/auth/me
+      AUTH_ME_URL: http://tuvi-website:2026/api/auth/me
       CHART_IMAGE_DIR: /app/storage/chart-images
     volumes:
       - tuvi_chart_images:/app/storage

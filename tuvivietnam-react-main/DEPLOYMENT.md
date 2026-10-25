@@ -1,44 +1,28 @@
-# Triển khai tuvihongan.com bằng Docker và Nginx
+# Triển khai tuvihongan.com bằng Docker
 
-Docker Compose chạy frontend/Flask, Node Customer API và MySQL. Nginx đã cài trên host nhận traffic của domain và proxy vào các cổng loopback của Docker. MySQL và các API không được mở trực tiếp ra Internet.
+Docker Compose chạy frontend/Flask, Node Customer API và MySQL. Nginx hiện có trên host tiếp tục làm reverse proxy; Compose không chiếm cổng 80/443. Flask được map vào cổng host `2028`, cùng upstream mà cấu hình Nginx hiện tại đang sử dụng. Customer API và MySQL chỉ nằm trong mạng Docker.
 
 ## Chuẩn bị
 
 1. Cài Docker Engine và Docker Compose plugin.
-2. Trỏ DNS `A` cho `tuvihongan.com` và `www.tuvihongan.com` về IP server. Nếu có bản ghi `AAAA`, nó cũng phải trỏ đúng server.
-3. Mở TCP `80` và `443` trên firewall/security group.
-4. Tạo `.env` từ `.env.server.example` và điền `SECRET_KEY`, mật khẩu MySQL, Google OAuth và SMTP. Giữ `.env` riêng tư.
+2. Đảm bảo DNS của domain đang dùng trỏ về server.
+3. Tạo `.env` từ `.env.server.example`, rồi điền `SECRET_KEY`, mật khẩu MySQL, Google OAuth và SMTP. Giữ `.env` riêng tư.
 
-## Khởi chạy ứng dụng
+## Cập nhật và khởi chạy
 
-Tại thư mục dự án:
+Tại thư mục Git gốc trên server:
 
 ```sh
+git pull origin main
+cd tuvivietnam-react-main
 docker compose up -d --build
 docker compose ps
 ```
 
-Compose chỉ bind Flask vào `127.0.0.1:2026` và Node Customer API vào `127.0.0.1:3002`. Nginx chuyển các API bài viết/chat/log/tài khoản tới Node; các request còn lại tới Flask.
+Compose giữ tên service/container `tuvi-website` / `tuvi_hongan_app` và ánh xạ cổng host `2028` vào Flask `2026`, để Nginx tiếp tục dùng upstream hiện tại. Flask chuyển tiếp các API cần Node Customer API qua mạng nội bộ Docker.
 
-## Cấu hình Nginx
+Nếu Docker báo orphan container, không dùng `--remove-orphans` tùy tiện; container cũ có thể đang phục vụ ứng dụng khác.
 
-Sao chép `deployment/nginx/nginx.conf` vào cấu hình site của Nginx (ví dụ `/etc/nginx/sites-available/tuvihongan.com`), bật site nếu cần, rồi kiểm tra và reload:
+## Dữ liệu
 
-```sh
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-Nếu dùng Certbot, sau khi DNS trỏ đúng và HTTP hoạt động, cấp HTTPS bằng:
-
-```sh
-sudo certbot --nginx -d tuvihongan.com -d www.tuvihongan.com
-```
-
-Thêm `https://tuvihongan.com` và `https://www.tuvihongan.com` vào Authorized JavaScript origins của Google OAuth.
-
-## Dữ liệu và cập nhật
-
-Các volume `tuvi_mysql_data`, `tuvi_app_data` và `tuvi_chart_images` giữ dữ liệu qua lần rebuild. Sao lưu định kỳ; không dùng `docker compose down -v` nếu muốn giữ dữ liệu. Firebase service account, nếu dùng, cần được mount read-only vào `web` tại đường dẫn khớp `FIREBASE_CREDENTIALS_PATH`.
-
-Để cập nhật, lấy source mới rồi chạy lại `docker compose up -d --build`. Container cũ có thể hiện là orphan nếu thuộc stack trước; chỉ xóa sau khi xác nhận không còn cần dùng.
+Các volume `tuvi_mysql_data`, `tuvi_app_data` và `tuvi_chart_images` giữ dữ liệu qua lần rebuild. Sao lưu định kỳ; không dùng `docker compose down -v` nếu muốn giữ dữ liệu. Firebase service account, nếu dùng, cần được mount read-only vào container `tuvi-website` tại đường dẫn khớp `FIREBASE_CREDENTIALS_PATH`.

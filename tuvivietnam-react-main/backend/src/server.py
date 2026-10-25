@@ -117,6 +117,11 @@ def create_app():
         from core.node_api_proxy import proxy_customer_api
         return proxy_customer_api(f"/api/article-images/{filename}")
 
+    @app.route("/api/customer-logs/charts", methods=["POST"])
+    def save_customer_chart_log():
+        from core.node_api_proxy import proxy_customer_api
+        return proxy_customer_api("/api/customer-logs/charts")
+
     # 2. API Tính toán lá số Tử Vi Đẩu Số
     @app.route("/api/calculate", methods=["POST"])
     def api_calculate():
