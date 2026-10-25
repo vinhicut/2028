@@ -1,8 +1,0 @@
-tuvihongan.com, www.tuvihongan.com {
-	encode zstd gzip
-
-	@customer_api path /api/admin/article-images* /api/admin/articles* /api/chat* /api/customer-logs* /api/admin/customer-logs* /api/customer-accounts* /api/admin/customer-accounts*
-	reverse_proxy @customer_api customer-api:3001
-
-	reverse_proxy web:2026
-}

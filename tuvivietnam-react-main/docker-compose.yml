@@ -6,8 +6,8 @@ services:
       args:
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
     restart: unless-stopped
-    expose:
-      - "2026"
+    ports:
+      - "127.0.0.1:2026:2026"
     volumes:
       - tuvi_app_data:/app/backend/data
     environment:
@@ -63,8 +63,8 @@ services:
       context: ./backend-node
       dockerfile: Dockerfile
     restart: unless-stopped
-    expose:
-      - "3001"
+    ports:
+      - "127.0.0.1:3002:3001"
     environment:
       PORT: 3001
       CORS_ORIGIN: ${CORS_ORIGIN:-https://tuvihongan.com}
@@ -87,26 +87,7 @@ services:
       mysql:
         condition: service_healthy
 
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
-    volumes:
-      - ./deployment/Caddyfile:/etc/caddy/Caddyfile:ro
-      - tuvi_caddy_data:/data
-      - tuvi_caddy_config:/config
-    depends_on:
-      web:
-        condition: service_healthy
-      customer-api:
-        condition: service_healthy
-
 volumes:
   tuvi_app_data:
   tuvi_mysql_data:
   tuvi_chart_images:
-  tuvi_caddy_data:
-  tuvi_caddy_config:

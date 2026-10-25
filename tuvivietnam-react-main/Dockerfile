@@ -33,4 +33,4 @@ EXPOSE 2026
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:2026/api/health')" || exit 1
 
-CMD ["gunicorn", "--chdir", "/app/backend/src", "--workers", "2", "--threads", "4", "--bind", "0.0.0.0:2026", "server:create_app()"]
+CMD ["gunicorn", "--chdir", "/app/backend/src", "--workers", "1", "--threads", "8", "--bind", "0.0.0.0:2026", "server:create_app()"]
