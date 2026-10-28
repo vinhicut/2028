@@ -160,28 +160,28 @@ const SEG_ANGLE = 360 / SEGMENTS; // 30 độ
 const activeDeck = new URLSearchParams(window.location.search).get("deck");
 const deckSize = ["giap-thien-di", "chan-am-tin", "ton-tranh-tung", "can-tai-loc", "kham-cong-danh", "can-nien-van", "ly-binh-an", "khon-hon-nhan", "doai-thuong-mai", "at-tat-benh", "binh-khoa-do", "dinh-tu-tuc", "mau-xuat-hanh", "ky-truy-tim", "canh-uu-tu", "tan-tham-yet", "nham-ky-nghe", "quy-tam-su"].includes(activeDeck) ? 15 : 210;
 const deckLabels = {
-  "giap-thien-di": "Giáp Thiên Di",
-  "chan-am-tin": "Chấn Âm Tín",
-  "ton-tranh-tung": "Tốn thanh trừng",
-  "can-tai-loc": "Càn Tài Lộc",
-  "kham-cong-danh": "Khảm Công Danh",
-  "can-nien-van": "Cấn Niên Vận",
-  "ly-binh-an": "Ly Bình An",
-  "khon-hon-nhan": "Khôn Hôn Nhân",
-  "doai-thuong-mai": "Đoài Thương Mại",
-  "at-tat-benh": "Ất Tật Bệnh",
-  "binh-khoa-do": "Bính Khoa Đỗ",
-  "dinh-tu-tuc": "Đinh Tử Tức",
-  "mau-xuat-hanh": "Mậu Xuất Hành",
-  "ky-truy-tim": "Kỷ Truy Tìm",
-  "canh-uu-tu": "Canh Ưu Tú",
-  "tan-tham-yet": "Tân Thám Yết",
-  "nham-ky-nghe": "Nhâm Kỹ Nghệ",
-  "quy-tam-su": "Quý Tâm Sự"
+  "giap-thien-di": "THIÊN DI – QUẺ GIÁP (Thay đổi chỗ ở/chỗ làm tốt hay xấu?)",
+  "chan-am-tin": "ÂM TÍN – QUẺ CHẤN (Hỏi tin tức người ở xa)",
+  "ton-tranh-tung": "TRANH TỤNG – QUẺ TỐN (Kiện cáo, thị phi lợi hay hại?)",
+  "can-tai-loc": "NIÊN VẬN – QUẺ CÀN (Năm nay tốt hay xấu?)",
+  "kham-cong-danh": "CÔNG DANH – QUẺ KHẢM (Thăng tiến sớm hay muộn?)",
+  "can-nien-van": "TÀI LỘC – QUẺ CẤN (Tiền của dồi dào hay hao hụt?)",
+  "ly-binh-an": "BÌNH AN – QUẺ LY (Vận gia đình có được bình an?)",
+  "khon-hon-nhan": "HÔN NHÂN – QUẺ KHÔN (Vợ chồng tốt hay xấu?)",
+  "doai-thuong-mai": "BUÔN BÁN – QUẺ ĐOÀI (Buôn bán lỗ hay lãi?)",
+  "at-tat-benh": "TẬT BỆNH – QUẺ ẤT (Bệnh nặng hay nhẹ?)",
+  "binh-khoa-do": "KHOA ĐỖ – QUẺ BÍNH (Thi cử, thăng tiến được chăng?)",
+  "dinh-tu-tuc": "TỬ TỨC – QUẺ ĐINH (Đường con cái tốt hay xấu?)",
+  "mau-xuat-hanh": "XUẤT HÀNH – QUẺ MẬU (Ra đi có gặp may không?)",
+  "ky-truy-tim": "TRUY TÌM – QUẺ KỶ (Có tìm thấy vật thất lạc/mất không?)",
+  "canh-uu-tu": "ƯU TƯ – QUẺ CANH (Hỏi việc lành hay dữ?)",
+  "tan-tham-yet": "THÁM YẾT – QUẺ TÂN (Đi thăm hỏi, thăm viếng được không?)",
+  "nham-ky-nghe": "KỸ NGHỆ – QUẺ NHÂM (Nghề nghiệp lợi hay hại?)",
+  "quy-tam-su": "TÂM SỰ – QUẺ QUÝ (Tình riêng có toại ý hay không?)"
 };
 if(deckLabels[activeDeck]){
   document.body.classList.add("deck-mode");
-  const groupLabel = activeDeck === "giap-thien-di" ? "Giáp Thiên Di" : ["can-tai-loc", "kham-cong-danh", "can-nien-van"].includes(activeDeck) ? "Càn Khảm Cấn" : ["ly-binh-an", "khon-hon-nhan", "doai-thuong-mai"].includes(activeDeck) ? "Ly Khôn Đoài" : ["at-tat-benh", "binh-khoa-do", "dinh-tu-tuc", "mau-xuat-hanh"].includes(activeDeck) ? "Ất Bính Đinh Mậu" : ["ky-truy-tim", "canh-uu-tu", "tan-tham-yet", "nham-ky-nghe", "quy-tam-su"].includes(activeDeck) ? "Kỷ Canh Tân Nhâm Quý" : "Chấn Tốn";
+  const groupLabel = "Xin quẻ chi tiết từng việc";
   document.querySelector("header .subtitle").textContent = "Bộ quẻ " + groupLabel + " • " + deckSize + " quẻ";
   document.getElementById("cardsTitle").textContent = "Các quẻ " + deckLabels[activeDeck];
   document.title = "Tử Vi Hồng Ân - " + deckLabels[activeDeck];

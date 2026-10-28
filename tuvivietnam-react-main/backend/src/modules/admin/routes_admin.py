@@ -50,7 +50,7 @@ def create_user():
 def update_or_delete_user(user_id):
     current = g.current_user
     current_level = int(current.get('admin_level') or 2)
-    target = next((user for user in admin_get_users(limit=1000, offset=0) if str(user.get('id')) == str(user_id)), None)
+    target = admin_get_user_detail(user_id)
     if not target:
         return jsonify({"status": "error", "message": "Không tìm thấy người dùng."}), 404
     if request.method == 'DELETE':
@@ -62,6 +62,10 @@ def update_or_delete_user(user_id):
         return jsonify({"status": "success"}), 200
 
     updates = request.get_json(silent=True) or {}
+    # A role change away from admin can arrive with a stale admin_level from
+    # clients that submit the full user form. The database resets it to 0.
+    if updates.get('account_type') in ('user', 'collaborator'):
+        updates.pop('admin_level', None)
     if updates.get('account_type') == 'admin' and current_level != 1:
         return jsonify({"status": "error", "message": "Chỉ Admin 1 mới được tạo hoặc phân quyền tài khoản quản trị."}), 403
     if 'admin_level' in updates and current_level != 1:

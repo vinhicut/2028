@@ -1,6 +1,6 @@
 ﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, CalendarDays, Mail, RefreshCw, Search, Trash2, UserPlus, Users, X } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Copy, Mail, RefreshCw, Search, Trash2, UserPlus, Users, X } from 'lucide-react';
 import './UserManagement.css';
 
 const ROLE_LABELS = { user: 'Người dùng', collaborator: 'Cộng tác viên', admin: 'Admin' };
@@ -17,6 +17,7 @@ export default function UserManagement() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [userDetail, setUserDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [referralLinkCopied, setReferralLinkCopied] = useState(false);
   const token = localStorage.getItem('tuvi_token') || '';
 
   const loadUsers = useCallback(async () => {
@@ -24,15 +25,23 @@ export default function UserManagement() {
     setError('');
     try {
       const headers = { Authorization: `Bearer ${localStorage.getItem('tuvi_token') || ''}` };
-      const [meResponse, usersResponse] = await Promise.all([
+      const [meResponse, firstUsersResponse] = await Promise.all([
         fetch('/api/auth/me', { headers }),
-        fetch('/api/admin/users?limit=200', { headers }),
+        fetch('/api/admin/users?limit=200&offset=0', { headers }),
       ]);
       const me = await meResponse.json().catch(() => ({}));
-      const result = await usersResponse.json().catch(() => ({}));
-      if (!meResponse.ok || !usersResponse.ok) throw new Error(result.message || me.message || 'Bạn không có quyền quản lý người dùng.');
+      const firstPage = await firstUsersResponse.json().catch(() => ({}));
+      if (!meResponse.ok || !firstUsersResponse.ok) throw new Error(firstPage.message || me.message || 'Bạn không có quyền quản lý người dùng.');
+      const allUsers = firstPage.data || [];
+      for (let offset = allUsers.length; allUsers.length > 0 && allUsers.length % 200 === 0; offset += 200) {
+        const response = await fetch(`/api/admin/users?limit=200&offset=${offset}`, { headers });
+        const page = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(page.message || 'Không tải được danh sách người dùng.');
+        allUsers.push(...(page.data || []));
+        if ((page.data || []).length < 200) break;
+      }
       setCurrentUser({ ...me.user, account_type: me.user.account_type || (me.user.role === 'manager' ? 'admin' : 'user'), admin_level: me.user.admin_level || (me.user.role === 'manager' ? 2 : 0) });
-      setUsers(result.data || []);
+      setUsers(allUsers);
     } catch (loadError) {
       setError(loadError.message || 'Không tải được danh sách người dùng.');
     } finally {
@@ -91,6 +100,7 @@ export default function UserManagement() {
   const openUserDetail = async (user) => {
     setSelectedUser(user);
     setUserDetail(null);
+    setReferralLinkCopied(false);
     setDetailLoading(true);
     try {
       const response = await fetch(`/api/admin/users/${encodeURIComponent(user.id)}`, {
@@ -103,6 +113,17 @@ export default function UserManagement() {
       setUserDetail({ error: detailError.message });
     } finally {
       setDetailLoading(false);
+    }
+  };
+
+  const copyReferralLink = async () => {
+    if (!userDetail?.referral_code) return;
+    const link = `${window.location.origin}/?ref=${encodeURIComponent(userDetail.referral_code)}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setReferralLinkCopied(true);
+    } catch {
+      setError('Không thể sao chép liên kết. Hãy sao chép liên kết hiển thị trong popup.');
     }
   };
 
@@ -138,6 +159,7 @@ export default function UserManagement() {
           <div className="user-detail-heading"><div className="user-detail-avatar">{(selectedUser.name || selectedUser.email || 'U').slice(0, 1).toUpperCase()}</div><div><span>HỒ SƠ NGƯỜI DÙNG</span><h2 id="user-detail-title">{selectedUser.name || 'Chưa có tên'}</h2><p><Mail size={14} /> {selectedUser.email}</p></div></div>
           {detailLoading ? <p className="user-detail-state">Đang tải thông tin…</p> : userDetail?.error ? <p className="user-detail-state error">{userDetail.error}</p> : userDetail && <>
             <div className="user-detail-facts"><div><span>Mã user</span><strong>{userDetail.id}</strong></div><div><span>Mã cộng tác viên gắn với user</span><strong>{userDetail.referrer_code || (userDetail.account_type === 'collaborator' ? userDetail.referral_code : '') || 'Không có'}</strong></div><div><span>Loại tài khoản</span><strong>{ROLE_LABELS[userDetail.account_type] || `Admin ${userDetail.admin_level || 2}`}</strong></div><div><span>Ngày tạo</span><strong>{userDetail.created_at ? new Date(userDetail.created_at).toLocaleDateString('vi-VN') : 'Chưa có dữ liệu'}</strong></div><div><span>Đăng nhập gần nhất</span><strong>{userDetail.last_login_at ? new Date(userDetail.last_login_at).toLocaleString('vi-VN') : 'Chưa có dữ liệu'}</strong></div><div><span>Người được giới thiệu</span><strong>{userDetail.referred_users || 0}</strong></div><div><span>Người giới thiệu</span><strong>{userDetail.referrer_name || 'Không có'}{userDetail.referrer_email ? ` · ${userDetail.referrer_email}` : ''}</strong></div>{userDetail.referral_code && <div><span>Mã cộng tác viên</span><strong>{userDetail.referral_code}</strong></div>}</div>
+            {userDetail.account_type === 'collaborator' && userDetail.referral_code && <div className="user-detail-referral"><span>Liên kết giới thiệu</span><div><a href={`/?ref=${encodeURIComponent(userDetail.referral_code)}`} target="_blank" rel="noreferrer">{`${window.location.origin}/?ref=${userDetail.referral_code}`}</a><button type="button" onClick={copyReferralLink}><Copy size={14} />{referralLinkCopied ? 'Đã sao chép' : 'Sao chép'}</button></div><small>Người mở liên kết và đăng nhập bằng Google sẽ được tạo tài khoản, gắn với cộng tác viên này.</small></div>}
             <div className="user-detail-services-heading"><h3>Lịch sử lập lá số tử vi và dịch vụ đã sử dụng</h3><span>{userDetail.services?.length || 0}</span></div>
             {userDetail.services?.length ? <ul className="user-detail-services">{userDetail.services.map((service) => <li key={service.id}><CalendarDays size={17} /><div><strong>Lập lá số tử vi{service.ho_ten ? ` · ${service.ho_ten}` : ''}</strong><span>{service.updated_at || service.created_at ? new Date(service.updated_at || service.created_at).toLocaleString('vi-VN') : 'Không rõ thời gian'}{service.chart_code ? ` · Mã ${service.chart_code}` : ''}</span></div></li>)}</ul> : <p className="user-detail-empty">Chưa ghi nhận dịch vụ nào đã lưu cho tài khoản này.</p>}
           </>}

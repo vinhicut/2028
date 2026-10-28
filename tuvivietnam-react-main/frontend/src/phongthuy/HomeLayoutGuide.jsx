@@ -11,8 +11,9 @@ import {
 } from 'lucide-react';
 import { getDirectionsEvaluation } from './fengShuiLogic';
 
-export const HomeLayoutGuide = ({ husbandData }) => {
-  const directions = getDirectionsEvaluation(husbandData.maleCung);
+export const HomeLayoutGuide = ({ husbandData, isFemale = false }) => {
+  const ownerCung = isFemale ? husbandData.femaleCung : husbandData.maleCung;
+  const directions = getDirectionsEvaluation(ownerCung);
   const goodDirs = directions.filter((d) => d.starType === 'Cát');
   const badDirs = directions.filter((d) => d.starType === 'Hung');
 
@@ -33,7 +34,7 @@ export const HomeLayoutGuide = ({ husbandData }) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
           <div className="bg-[#EBF7EE] border border-[#A7F3D0] rounded-xl p-4 shadow-xs">
             <span className="text-xs font-bold text-[#065F46] uppercase tracking-wider block mb-2 flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-[#059669]" /> 4 Phương Vị Cát Tường (Gia Chủ {husbandData.maleCung})
+              <CheckCircle2 className="w-4 h-4 text-[#059669]" /> 4 Phương Vị Cát Tường (Gia Chủ {ownerCung})
             </span>
             <div className="grid grid-cols-2 gap-2 text-xs text-[#1F1914]">
               {goodDirs.map((d) => (
@@ -49,7 +50,7 @@ export const HomeLayoutGuide = ({ husbandData }) => {
 
           <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-xl p-4 shadow-xs">
             <span className="text-xs font-bold text-[#991B1B] uppercase tracking-wider block mb-2 flex items-center gap-1.5">
-              <AlertTriangle className="w-4 h-4 text-[#DC2626]" /> 4 Phương Vị Hung Sát (Gia Chủ {husbandData.maleCung})
+              <AlertTriangle className="w-4 h-4 text-[#DC2626]" /> 4 Phương Vị Hung Sát (Gia Chủ {ownerCung})
             </span>
             <div className="grid grid-cols-2 gap-2 text-xs text-[#1F1914]">
               {badDirs.map((d) => (

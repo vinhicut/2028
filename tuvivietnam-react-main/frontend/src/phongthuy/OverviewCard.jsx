@@ -15,10 +15,13 @@ const BAGUA_SYMBOLS = {
 
 export const OverviewCard = ({
   husbandData,
+  isFemale = false,
   courtyardImgUrl,
 }) => {
   const elementInfo = FIVE_ELEMENTS_RELATION[husbandData.element];
-  const symbol = BAGUA_SYMBOLS[husbandData.maleCung];
+  const ownerCung = isFemale ? husbandData.femaleCung : husbandData.maleCung;
+  const ownerGroup = isFemale ? husbandData.femaleGroup : husbandData.maleGroup;
+  const symbol = BAGUA_SYMBOLS[ownerCung];
 
   return (
     <div className="space-y-6">
@@ -39,16 +42,16 @@ export const OverviewCard = ({
           <div className="md:col-span-8">
             <div className="flex items-center gap-2 text-xs font-semibold text-[#9E2A1E] mb-2 tracking-wide uppercase">
               <Sparkles className="w-4 h-4" />
-              <span>Hồ Sơ Bản Mệnh Bát Trạch · Nam Gia Chủ</span>
+              <span>Hồ Sơ Bản Mệnh Bát Trạch · {isFemale ? 'Nữ' : 'Nam'} Gia Chủ</span>
             </div>
             <h1 className="font-serif-heading text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1F1914] mb-3">
               Gia Chủ Tuổi {husbandData.canChi} ({husbandData.year})
             </h1>
             <p className="text-sm sm:text-base text-[#4F463D] leading-relaxed max-w-2xl mb-5">
               Theo thuật phong thủy Bát Trạch Minh Kính phương Đông, người sinh năm <strong>{husbandData.year} ({husbandData.canChi})</strong> mang nạp âm{' '}
-              <strong>{husbandData.napAm}</strong>. Cung Phi Bát Trạch nam mạng thuộc{' '}
-              <strong className="text-[#9E2A1E]">Cung {husbandData.maleCung}</strong>, thuộc nhóm{' '}
-              <strong className="text-[#874A00]">{husbandData.maleGroup}</strong>.
+              <strong>{husbandData.napAm}</strong>. Cung Phi Bát Trạch {isFemale ? 'nữ' : 'nam'} mạng thuộc{' '}
+              <strong className="text-[#9E2A1E]">Cung {ownerCung}</strong>, thuộc nhóm{' '}
+              <strong className="text-[#874A00]">{ownerGroup}</strong>.
             </p>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -61,9 +64,9 @@ export const OverviewCard = ({
               <div className="bg-[#FAF7F2] border border-[#E8E1D5] rounded-xl p-3 shadow-2xs">
                 <span className="text-[11px] text-[#7A6F64] font-medium block">Cung Mệnh (Cung Phi)</span>
                 <span className="font-serif-heading text-base font-bold text-[#9E2A1E]">
-                  Cung {husbandData.maleCung} {symbol?.hex}
+                  Cung {ownerCung} {symbol?.hex}
                 </span>
-                <span className="text-[10px] text-[#8C8174] block mt-0.5">{husbandData.maleGroup}</span>
+                <span className="text-[10px] text-[#8C8174] block mt-0.5">{ownerGroup}</span>
               </div>
 
               <div className="bg-[#FAF7F2] border border-[#E8E1D5] rounded-xl p-3 shadow-2xs">
@@ -89,7 +92,7 @@ export const OverviewCard = ({
               {symbol?.hex || '☯'}
             </div>
             <span className="font-serif-heading text-xl font-bold text-[#1F1914]">
-              Cung {husbandData.maleCung} ({husbandData.maleGroup})
+              Cung {ownerCung} ({ownerGroup})
             </span>
             <span className="text-xs text-[#7A6F64] text-center mt-1 max-w-[220px]">
               {symbol?.desc || 'Bát Quái Diên Niên Chi Mệnh'}
@@ -97,7 +100,7 @@ export const OverviewCard = ({
             <div className="mt-4 pt-3 border-t border-[#E5DFD4] w-full flex items-center justify-around text-center">
               <div>
                 <span className="text-[10px] text-[#7A6F64] block">Trạch Mệnh</span>
-                <span className="text-xs font-bold text-[#9E2A1E]">{husbandData.maleGroup.split(' ')[0]} Trạch</span>
+                <span className="text-xs font-bold text-[#9E2A1E]">{ownerGroup.split(' ')[0]} Trạch</span>
               </div>
               <div className="w-px h-6 bg-[#E5DFD4]" />
               <div>

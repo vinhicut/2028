@@ -149,7 +149,8 @@ export const PhongThuyWidget = ({
         {/* Tab Content */}
         {activeTab === 'overview' && (
           <OverviewCard
-            husbandData={husbandData}
+            husbandData={isSingle ? singleOwnerData : husbandData}
+            isFemale={isSingle && singleGender === 'female'}
             courtyardImgUrl={courtyardImgUrl}
             luopanImgUrl={luopanImgUrl}
           />
@@ -159,6 +160,9 @@ export const PhongThuyWidget = ({
           <DirectionsSection
             husbandData={husbandData}
             wifeData={wifeData}
+            isSingle={isSingle}
+            singleOwnerData={singleOwnerData}
+            isFemale={singleGender === 'female'}
           />
         )}
 
@@ -186,7 +190,7 @@ export const PhongThuyWidget = ({
         )}
 
         {activeTab === 'layout' && (
-          <HomeLayoutGuide husbandData={husbandData} />
+          <HomeLayoutGuide husbandData={isSingle ? singleOwnerData : husbandData} isFemale={isSingle && singleGender === 'female'} />
         )}
       </div>
     </div>

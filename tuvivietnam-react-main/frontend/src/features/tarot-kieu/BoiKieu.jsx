@@ -1,116 +1,72 @@
 import React, { useEffect, useState } from 'react';
 import './BoiKieu.css';
 
-/**
- * Trang Bói Quẻ Kiều – nhúng HTML gốc (bánh xe + 210 quẻ)
- */
+const questionDecks = [
+  { id: 'can-tai-loc', title: 'NIÊN VẬN – QUẺ CÀN', question: 'Năm nay tốt hay xấu?' },
+  { id: 'kham-cong-danh', title: 'CÔNG DANH – QUẺ KHẢM', question: 'Thăng tiến sớm hay muộn?' },
+  { id: 'can-nien-van', title: 'TÀI LỘC – QUẺ CẤN', question: 'Tiền của dồi dào hay hao hụt?' },
+  { id: 'chan-am-tin', title: 'ÂM TÍN – QUẺ CHẤN', question: 'Hỏi tin tức người ở xa' },
+  { id: 'ton-tranh-tung', title: 'TRANH TỤNG – QUẺ TỐN', question: 'Kiện cáo, thị phi lợi hay hại?' },
+  { id: 'ly-binh-an', title: 'BÌNH AN – QUẺ LY', question: 'Vận gia đình có được bình an?' },
+  { id: 'khon-hon-nhan', title: 'HÔN NHÂN – QUẺ KHÔN', question: 'Vợ chồng tốt hay xấu?' },
+  { id: 'doai-thuong-mai', title: 'BUÔN BÁN – QUẺ ĐOÀI', question: 'Buôn bán lỗ hay lãi?' },
+  { id: 'giap-thien-di', title: 'THIÊN DI – QUẺ GIÁP', question: 'Thay đổi chỗ ở/chỗ làm tốt hay xấu?' },
+  { id: 'at-tat-benh', title: 'TẬT BỆNH – QUẺ ẤT', question: 'Bệnh nặng hay nhẹ?' },
+  { id: 'binh-khoa-do', title: 'KHOA ĐỖ – QUẺ BÍNH', question: 'Thi cử, thăng tiến được chăng?' },
+  { id: 'dinh-tu-tuc', title: 'TỬ TỨC – QUẺ ĐINH', question: 'Đường con cái tốt hay xấu?' },
+  { id: 'mau-xuat-hanh', title: 'XUẤT HÀNH – QUẺ MẬU', question: 'Ra đi có gặp may không?' },
+  { id: 'ky-truy-tim', title: 'TRUY TÌM – QUẺ KỶ', question: 'Có tìm thấy vật thất lạc/mất không?' },
+  { id: 'canh-uu-tu', title: 'ƯU TƯ – QUẺ CANH', question: 'Hỏi việc lành hay dữ?' },
+  { id: 'tan-tham-yet', title: 'THÁM YẾT – QUẺ TÂN', question: 'Đi thăm hỏi, thăm viếng được không?' },
+  { id: 'nham-ky-nghe', title: 'KỸ NGHỆ – QUẺ NHÂM', question: 'Nghề nghiệp lợi hay hại?' },
+  { id: 'quy-tam-su', title: 'TÂM SỰ – QUẺ QUÝ', question: 'Tình riêng có toại ý hay không?' },
+];
+
 function BoiKieu() {
-  const [chanTonOpen, setChanTonOpen] = useState(false);
-  const [canKhamCanOpen, setCanKhamCanOpen] = useState(false);
-  const [lyKhonDoaiOpen, setLyKhonDoaiOpen] = useState(false);
-  const [atBinhDinhMauOpen, setAtBinhDinhMauOpen] = useState(false);
-  const [kyCanhTanNhamQuyOpen, setKyCanhTanNhamQuyOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [selectedDeck, setSelectedDeck] = useState('');
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
+  const selectDeck = (deckId) => {
+    setSelectedDeck(deckId);
+    setMenuOpen(false);
+  };
+
   return (
     <div className="boikieu-page">
-      <nav className="boikieu-navigation" aria-label="Điều hướng tử vi">
+      <nav className="boikieu-navigation" aria-label="Xin quẻ chi tiết từng việc">
         <ul className="boikieu-nav-menu">
-          {[
-            'Giáp Thiên Di',
-            'Chấn Tốn',
-            'Càn Khảm Cấn',
-            'Ly Khôn Đoài',
-            'Ất Bính Đinh Mậu',
-            'Kỷ Canh Tân Nhâm Quỷ',
-          ].map((item) => (
-            <li
-              className={`boikieu-nav-item${['Chấn Tốn', 'Càn Khảm Cấn', 'Ly Khôn Đoài', 'Ất Bính Đinh Mậu', 'Kỷ Canh Tân Nhâm Quỷ'].includes(item) ? ' has-dropdown' : ''}`}
-              key={item}
-              onMouseEnter={() => {
-                if (item === 'Chấn Tốn') setChanTonOpen(true);
-                if (item === 'Càn Khảm Cấn') setCanKhamCanOpen(true);
-                if (item === 'Ly Khôn Đoài') setLyKhonDoaiOpen(true);
-                if (item === 'Ất Bính Đinh Mậu') setAtBinhDinhMauOpen(true);
-                if (item === 'Kỷ Canh Tân Nhâm Quỷ') setKyCanhTanNhamQuyOpen(true);
-              }}
-              onMouseLeave={() => {
-                if (item === 'Chấn Tốn') setChanTonOpen(false);
-                if (item === 'Càn Khảm Cấn') setCanKhamCanOpen(false);
-                if (item === 'Ly Khôn Đoài') setLyKhonDoaiOpen(false);
-                if (item === 'Ất Bính Đinh Mậu') setAtBinhDinhMauOpen(false);
-                if (item === 'Kỷ Canh Tân Nhâm Quỷ') setKyCanhTanNhamQuyOpen(false);
-              }}
-            >
-              <button
-                type="button"
-                aria-haspopup={['Chấn Tốn', 'Càn Khảm Cấn', 'Ly Khôn Đoài', 'Ất Bính Đinh Mậu', 'Kỷ Canh Tân Nhâm Quỷ'].includes(item) ? 'true' : undefined}
-                aria-expanded={item === 'Chấn Tốn' ? chanTonOpen : item === 'Càn Khảm Cấn' ? canKhamCanOpen : item === 'Ly Khôn Đoài' ? lyKhonDoaiOpen : item === 'Ất Bính Đinh Mậu' ? atBinhDinhMauOpen : item === 'Kỷ Canh Tân Nhâm Quỷ' ? kyCanhTanNhamQuyOpen : undefined}
-                onClick={item === 'Chấn Tốn'
-                  ? () => setChanTonOpen((open) => !open)
-                  : item === 'Càn Khảm Cấn'
-                    ? () => setCanKhamCanOpen((open) => !open)
-                    : item === 'Ly Khôn Đoài'
-                      ? () => setLyKhonDoaiOpen((open) => !open)
-                      : item === 'Ất Bính Đinh Mậu'
-                        ? () => setAtBinhDinhMauOpen((open) => !open)
-                        : item === 'Kỷ Canh Tân Nhâm Quỷ'
-                          ? () => setKyCanhTanNhamQuyOpen((open) => !open)
-                  : item === 'Giáp Thiên Di'
-                    ? () => setSelectedDeck('giap-thien-di')
-                    : undefined}
-              >
-                {item}{['Chấn Tốn', 'Càn Khảm Cấn', 'Ly Khôn Đoài', 'Ất Bính Đinh Mậu', 'Kỷ Canh Tân Nhâm Quỷ'].includes(item) && <span className="boikieu-caret">▾</span>}
-              </button>
-              {item === 'Chấn Tốn' && chanTonOpen && (
-                <ul className="boikieu-dropdown">
-                  <li><button type="button" onClick={() => { setSelectedDeck('chan-am-tin'); setChanTonOpen(false); }}>Chấn Âm Tín</button></li>
-                  <li><button type="button" onClick={() => { setSelectedDeck('ton-tranh-tung'); setChanTonOpen(false); }}>Tốn thanh trừng</button></li>
-                </ul>
-              )}
-              {item === 'Càn Khảm Cấn' && canKhamCanOpen && (
-                <ul className="boikieu-dropdown">
-                  <li><button type="button" onClick={() => { setSelectedDeck('can-tai-loc'); setCanKhamCanOpen(false); }}>Càn Tài Lộc</button></li>
-                  <li><button type="button" onClick={() => { setSelectedDeck('kham-cong-danh'); setCanKhamCanOpen(false); }}>Khảm Công Danh</button></li>
-                  <li><button type="button" onClick={() => { setSelectedDeck('can-nien-van'); setCanKhamCanOpen(false); }}>Cấn Niên Vận</button></li>
-                </ul>
-              )}
-              {item === 'Ly Khôn Đoài' && lyKhonDoaiOpen && (
-                <ul className="boikieu-dropdown">
-                  <li><button type="button" onClick={() => { setSelectedDeck('ly-binh-an'); setLyKhonDoaiOpen(false); }}>Ly Bình An</button></li>
-                  <li><button type="button" onClick={() => { setSelectedDeck('khon-hon-nhan'); setLyKhonDoaiOpen(false); }}>Khôn Hôn Nhân</button></li>
-                  <li><button type="button" onClick={() => { setSelectedDeck('doai-thuong-mai'); setLyKhonDoaiOpen(false); }}>Đoài Thương Mại</button></li>
-                </ul>
-              )}
-              {item === 'Ất Bính Đinh Mậu' && atBinhDinhMauOpen && (
-                <ul className="boikieu-dropdown">
-                  <li><button type="button" onClick={() => { setSelectedDeck('at-tat-benh'); setAtBinhDinhMauOpen(false); }}>Ất Tật Bệnh</button></li>
-                  <li><button type="button" onClick={() => { setSelectedDeck('binh-khoa-do'); setAtBinhDinhMauOpen(false); }}>Bính Khoa Đỗ</button></li>
-                  <li><button type="button" onClick={() => { setSelectedDeck('dinh-tu-tuc'); setAtBinhDinhMauOpen(false); }}>Đinh Tử Tức</button></li>
-                  <li><button type="button" onClick={() => { setSelectedDeck('mau-xuat-hanh'); setAtBinhDinhMauOpen(false); }}>Mậu Xuất Hành</button></li>
-                </ul>
-              )}
-              {item === 'Kỷ Canh Tân Nhâm Quỷ' && kyCanhTanNhamQuyOpen && (
-                <ul className="boikieu-dropdown">
-                  <li><button type="button" onClick={() => { setSelectedDeck('ky-truy-tim'); setKyCanhTanNhamQuyOpen(false); }}>Kỷ Truy Tìm</button></li>
-                  <li><button type="button" onClick={() => { setSelectedDeck('canh-uu-tu'); setKyCanhTanNhamQuyOpen(false); }}>Canh Ưu Tú</button></li>
-                  <li><button type="button" onClick={() => { setSelectedDeck('tan-tham-yet'); setKyCanhTanNhamQuyOpen(false); }}>Tân Thám Yết</button></li>
-                  <li><button type="button" onClick={() => { setSelectedDeck('nham-ky-nghe'); setKyCanhTanNhamQuyOpen(false); }}>Nhâm Kỹ Nghệ</button></li>
-                  <li><button type="button" onClick={() => { setSelectedDeck('quy-tam-su'); setKyCanhTanNhamQuyOpen(false); }}>Quý Tâm Sự</button></li>
-                </ul>
-              )}
-            </li>
-          ))}
+          <li
+            className="boikieu-nav-item has-dropdown"
+            onMouseEnter={() => {
+              if (window.matchMedia('(hover: hover)').matches) setMenuOpen(true);
+            }}
+            onMouseLeave={() => {
+              if (window.matchMedia('(hover: hover)').matches) setMenuOpen(false);
+            }}
+          >
+            <button type="button" aria-haspopup="true" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}>
+              XIN QUẺ CHI TIẾT TỪNG VIỆC<span className="boikieu-caret">▾</span>
+            </button>
+            {menuOpen && <ul className="boikieu-dropdown" aria-label="Chọn việc muốn xin quẻ">
+              {questionDecks.map((deck) => (
+                <li key={deck.id}>
+                  <button type="button" className="boikieu-deck-option" onClick={() => selectDeck(deck.id)}>
+                    <strong>{deck.title}</strong><small>({deck.question})</small>
+                  </button>
+                </li>
+              ))}
+            </ul>}
+          </li>
         </ul>
       </nav>
       <div className="boikieu-iframe-wrap">
         <iframe
           src={`/tarot-kieu/boi-que-kieu.html${selectedDeck ? `?deck=${selectedDeck}` : ''}`}
-          title={selectedDeck === 'giap-thien-di' ? 'Giáp Thiên Di' : 'Bói Quẻ Kiều'}
+          title={questionDecks.find((deck) => deck.id === selectedDeck)?.title || 'Bói Quẻ Kiều'}
           className="boikieu-iframe"
         />
       </div>

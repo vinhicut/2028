@@ -62,7 +62,7 @@ def upsert_user(google_id: str, email: str, name: str, avatar: Optional[str], ro
         if email.lower() in SUPER_ADMIN_EMAILS:
             final_role, account_type, admin_level = 'manager', 'admin', 1
         referred_by_user_id = user_data.get('referred_by_user_id')
-        if not referred_by_user_id and referral_code and str(user_data.get('google_id', '')).startswith('pending:'):
+        if not referred_by_user_id and referral_code:
             referrers = users_ref.where(filter=firestore.FieldFilter('referral_code', '==', referral_code.strip().upper())).limit(1).get()
             if referrers and referrers[0].id != user_id and referrers[0].to_dict().get('account_type') == 'collaborator':
                 referred_by_user_id = referrers[0].id

@@ -6,14 +6,15 @@
 }
 
 .boikieu-navigation {
-  width: fit-content;
+  width: 100%;
   max-width: 100%;
-  margin: 0 0 12px;
+  margin: 0 auto 12px;
   border-bottom: 1px solid #e6e1d9;
 }
 
 .boikieu-nav-menu {
   display: flex;
+  justify-content: flex-start;
   flex-wrap: wrap;
   gap: 4px;
   list-style: none;
@@ -77,6 +78,31 @@
 .boikieu-nav-item .boikieu-dropdown button:hover,
 .boikieu-nav-item .boikieu-dropdown button:focus-visible {
   background: #f7f2e9;
+}
+
+.boikieu-dropdown {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-height: min(70vh, 620px);
+  overflow-y: auto;
+}
+
+.boikieu-nav-item .boikieu-dropdown .boikieu-deck-option {
+  display: grid;
+  gap: 4px;
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.boikieu-deck-option strong {
+  font-size: 12px;
+}
+
+.boikieu-deck-option small {
+  color: #786d60;
+  font-size: 11px;
+  font-weight: 400;
 }
 
 .boikieu-iframe-wrap {

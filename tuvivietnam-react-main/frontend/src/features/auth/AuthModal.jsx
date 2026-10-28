@@ -65,7 +65,7 @@ function AuthModal({ open, onClose, user, onAuthSuccess, onLogout }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           credential: response.credential,
-          referral_code: localStorage.getItem('tuvi_referral_code') || null,
+          referral_code: localStorage.getItem('tuvi_referral_code') || new URLSearchParams(window.location.search).get('ref') || null,
         }),
       });
       const data = await res.json().catch(() => ({}));

@@ -128,10 +128,10 @@ def upsert_user(google_id: str, email: str, name: str, avatar: Optional[str], ro
                 if email.lower() in SUPER_ADMIN_EMAILS:
                     final_role, account_type, admin_level = 'manager', 'admin', 1
                 referred_by_user_id = existing['referred_by_user_id']
-                if not referred_by_user_id and referral_code and str(existing['google_id']).startswith('pending:'):
+                if not referred_by_user_id and referral_code:
                     cur.execute("SELECT id FROM users WHERE upper(referral_code) = upper(?) AND account_type = 'collaborator'", (referral_code.strip(),))
                     referrer = cur.fetchone()
-                    referred_by_user_id = referrer['id'] if referrer else None
+                    referred_by_user_id = referrer['id'] if referrer and str(referrer['id']) != str(existing['id']) else None
                 cur.execute("""
                     UPDATE users
                     SET google_id = ?, email = ?, name = ?, avatar = ?, role = ?, account_type = ?, admin_level = ?, referred_by_user_id = ?, last_login_at = ?
@@ -437,7 +437,7 @@ def admin_update_user(user_id: Any, updates: Dict[str, Any]) -> Optional[Dict[st
                     fields['admin_level'] = 0
                 if fields['account_type'] == 'collaborator' and not current['referral_code']:
                     fields['referral_code'] = _new_referral_code()
-            if 'admin_level' in fields and fields['admin_level'] not in (1, 2, 3):
+            if fields.get('account_type') == 'admin' and fields.get('admin_level') not in (1, 2, 3):
                 raise ValueError('Cấp quản trị phải là 1, 2 hoặc 3.')
             if fields:
                 assignments = ', '.join(f"{column} = ?" for column in fields)

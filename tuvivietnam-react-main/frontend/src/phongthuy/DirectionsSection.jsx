@@ -14,13 +14,20 @@ import { getDirectionsEvaluation } from './fengShuiLogic';
 export const DirectionsSection = ({
   husbandData,
   wifeData,
+  isSingle = false,
+  singleOwnerData = husbandData,
+  isFemale = false,
 }) => {
   const [selectedPerson, setSelectedPerson] = useState('husband');
   const [filterType, setFilterType] = useState('all');
 
-  const currentPerson = selectedPerson === 'husband' ? husbandData : wifeData;
-  const currentCung = selectedPerson === 'husband' ? husbandData.maleCung : wifeData.femaleCung;
-  const currentGroup = selectedPerson === 'husband' ? husbandData.maleGroup : wifeData.femaleGroup;
+  const currentPerson = isSingle ? singleOwnerData : selectedPerson === 'husband' ? husbandData : wifeData;
+  const currentCung = isSingle
+    ? (isFemale ? singleOwnerData.femaleCung : singleOwnerData.maleCung)
+    : selectedPerson === 'husband' ? husbandData.maleCung : wifeData.femaleCung;
+  const currentGroup = isSingle
+    ? (isFemale ? singleOwnerData.femaleGroup : singleOwnerData.maleGroup)
+    : selectedPerson === 'husband' ? husbandData.maleGroup : wifeData.femaleGroup;
 
   const directions = getDirectionsEvaluation(currentCung);
   const husbandDirs = getDirectionsEvaluation(husbandData.maleCung);
@@ -46,7 +53,7 @@ export const DirectionsSection = ({
               <span>Bát Trạch Minh Kính · 8 Phương Vị Khí Trường</span>
             </div>
             <h2 className="font-serif-heading text-xl sm:text-2xl font-bold text-[#1F1914]">
-              Định Hướng Nhà Cát Hung Cho {selectedPerson === 'husband' ? 'Nam Gia Chủ' : 'Nữ Gia Chủ'}
+              Định Hướng Nhà Cát Hung Cho {isSingle ? (isFemale ? 'Nữ Gia Chủ' : 'Nam Gia Chủ') : selectedPerson === 'husband' ? 'Nam Gia Chủ' : 'Nữ Gia Chủ'}
             </h2>
             <p className="text-xs sm:text-sm text-[#645A50] mt-1">
               Dựa trên Cung Phi <strong className="text-[#1F1914]">{currentCung}</strong> ({currentGroup}) của tuổi{' '}
@@ -55,7 +62,7 @@ export const DirectionsSection = ({
           </div>
 
           {/* Toggle chuyển đổi đối tượng xem */}
-          <div className="flex items-center gap-2">
+          {!isSingle && <div className="flex items-center gap-2">
             <div className="inline-flex p-1 bg-[#FAF6F0] rounded-xl border border-[#E2DBD0]">
               <button
                 onClick={() => setSelectedPerson('husband')}
@@ -78,7 +85,7 @@ export const DirectionsSection = ({
                 Vợ ({wifeData.canChi} - {wifeData.femaleCung})
               </button>
             </div>
-          </div>
+          </div>}
         </div>
 
         {/* Bộ lọc loại sao */}
@@ -202,7 +209,7 @@ export const DirectionsSection = ({
       </div>
 
       {/* Bảng so sánh nhanh hướng nhà giữa hai vợ chồng */}
-      <div className="bg-[#FAF7F2] border border-[#E5DFD4] rounded-2xl p-4 sm:p-6">
+      {!isSingle && <div className="bg-[#FAF7F2] border border-[#E5DFD4] rounded-2xl p-4 sm:p-6">
         <div className="flex items-center gap-2 mb-4">
           <Layers className="w-5 h-5 text-[#9E2A1E]" />
           <div>
@@ -295,7 +302,7 @@ export const DirectionsSection = ({
             </tbody>
           </table>
         </div>
-      </div>
+      </div>}
     </div>
   );
 };

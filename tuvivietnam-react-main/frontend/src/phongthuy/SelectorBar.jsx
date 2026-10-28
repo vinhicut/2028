@@ -52,7 +52,7 @@ export const SelectorBar = ({
         {isSingle && (
           <div className="flex items-center gap-1.5 text-xs text-[#9E2A1E] bg-[#FDF2F2] border border-[#FECACA] px-3 py-1 rounded-lg">
             <Check className="w-3.5 h-3.5 text-[#DC2626]" />
-            <span>Chế độ độc thân: Tối ưu 100% hướng nhà theo nam gia chủ & gợi ý tuổi phối ngẫu</span>
+            <span>Chế độ độc thân: Tối ưu 100% hướng nhà theo {singleGender === 'female' ? 'nữ' : 'nam'} gia chủ & gợi ý tuổi phối ngẫu</span>
           </div>
         )}
       </div>
