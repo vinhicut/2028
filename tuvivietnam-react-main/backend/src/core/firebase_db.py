@@ -315,6 +315,30 @@ def admin_get_user_detail(user_id: str) -> Optional[Dict[str, Any]]:
         item.pop('input_data', None)
         item.pop('chart_data', None)
         user['services'].append(item)
+    user['referred_accounts'] = []
+    if user.get('account_type') == 'collaborator':
+        referred_docs = (db.collection('users')
+                         .where(filter=firestore.FieldFilter('referred_by_user_id', '==', str(user_id)))
+                         .get())
+        for referred_doc in referred_docs:
+            account = referred_doc.to_dict()
+            account['id'] = referred_doc.id
+            account.setdefault('name', '')
+            account.setdefault('email', '')
+            account.setdefault('last_login_at', None)
+            account['services'] = []
+            account_charts = (db.collection('user_charts')
+                              .where(filter=firestore.FieldFilter('user_id', '==', str(referred_doc.id)))
+                              .order_by('updated_at', direction=firestore.Query.DESCENDING)
+                              .limit(200).get())
+            for account_chart in account_charts:
+                service = account_chart.to_dict()
+                service['id'] = account_chart.id
+                service.pop('input_data', None)
+                service.pop('chart_data', None)
+                account['services'].append(service)
+            user['referred_accounts'].append(account)
+        user['referred_accounts'].sort(key=lambda account: account.get('created_at') or '', reverse=True)
     return user
 
 

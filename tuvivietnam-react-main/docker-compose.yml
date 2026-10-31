@@ -10,7 +10,9 @@ services:
     ports:
       - "2028:2026"
     volumes:
-      - tuvi_app_data:/app/backend/data
+      # SQLite is created from backend/src/core/config.py at /app/backend/src/data.
+      # Mount the volume at that exact path so users survive container recreation.
+      - tuvi_app_data:/app/backend/src/data
     environment:
       HOST: 0.0.0.0
       PORT: 2026

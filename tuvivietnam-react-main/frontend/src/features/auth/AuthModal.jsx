@@ -47,7 +47,38 @@ function AuthModal({ open, onClose, user, onAuthSuccess, onLogout }) {
         ...savedServices,
         ...legacyServices.filter((service) => !service.chart_code || !knownCodes.has(service.chart_code)),
       ].sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0));
-      if (active) setProfileDetails({ ...data, services });
+      let referredAccounts = Array.isArray(data.referred_accounts) ? data.referred_accounts : [];
+      const isCollaborator = data.account_type === 'collaborator' || user?.account_type === 'collaborator' || Boolean(data.referral_code);
+      if (isCollaborator && referredAccounts.length) {
+        try {
+          const referredLogsResponse = await fetch(`${API}/api/auth/profile/referred-chart-logs`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const referredLogsResult = await referredLogsResponse.json().catch(() => ({}));
+          if (referredLogsResponse.ok) {
+            const logsByEmail = new Map();
+            (referredLogsResult.data || []).forEach((log) => {
+              const key = String(log.customer_email || '').toLowerCase();
+              if (!logsByEmail.has(key)) logsByEmail.set(key, []);
+              logsByEmail.get(key).push(log);
+            });
+            referredAccounts = referredAccounts.map((account) => {
+              const accountServices = [...(account.services || [])];
+              const accountCodes = new Set(accountServices.map((service) => service.chart_code).filter(Boolean));
+              (logsByEmail.get(String(account.email || '').toLowerCase()) || []).forEach((log) => {
+                if (log.chart_code && accountCodes.has(log.chart_code)) return;
+                if (log.chart_code) accountCodes.add(log.chart_code);
+                accountServices.push({ ...log, id: `customer-log-${log.id}`, updated_at: log.created_at });
+              });
+              accountServices.sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0));
+              return { ...account, services: accountServices };
+            });
+          }
+        } catch (logsError) {
+          console.warn('Could not load referred users chart history:', logsError);
+        }
+      }
+      if (active) setProfileDetails({ ...data, account_type: isCollaborator ? 'collaborator' : data.account_type, services, referred_accounts: referredAccounts });
     }).catch((loadError) => {
       if (active) setProfileError(loadError.message || 'Không tải được thông tin hồ sơ.');
     }).finally(() => {
@@ -148,6 +179,17 @@ function AuthModal({ open, onClose, user, onAuthSuccess, onLogout }) {
     onClose?.();
   };
 
+  const referredAccounts = profileDetails?.referred_accounts || [];
+  const referredServiceSummary = referredAccounts.reduce((summary, account) => {
+    (account.services || []).forEach((service) => {
+      const name = service.service_name || service.service_type || 'Lập lá số tử vi';
+      summary[name] = (summary[name] || 0) + 1;
+    });
+    return summary;
+  }, {});
+  const referredServiceTotal = Object.values(referredServiceSummary).reduce((total, count) => total + count, 0);
+  const isCollaboratorProfile = profileDetails?.account_type === 'collaborator' || user?.account_type === 'collaborator' || Boolean(profileDetails?.referral_code);
+
   return (
     <div className="auth-overlay" onClick={onClose}>
       <div className="auth-modal" onClick={(e) => e.stopPropagation()}>
@@ -180,6 +222,7 @@ function AuthModal({ open, onClose, user, onAuthSuccess, onLogout }) {
                 </section>
                 <div className="auth-profile-service-summary"><span>Dịch vụ đã sử dụng</span><strong>Lập lá số tử vi: {profileDetails.services?.length || 0} lần</strong></div>
               </div>}
+              {isCollaboratorProfile && <section className="auth-referred-summary"><header><strong>User được giới thiệu</strong><span>{referredAccounts.length}</span></header><div className="auth-referred-metrics"><div><span>User đã dùng dịch vụ</span><strong>{referredAccounts.filter((account) => account.services?.length).length}</strong></div><div><span>Tổng lượt dịch vụ</span><strong>{referredServiceTotal}</strong></div></div>{Object.entries(referredServiceSummary).map(([name, count]) => <div className="auth-referred-service-type" key={name}><span>{name}</span><strong>{count} lượt</strong></div>)}{referredAccounts.length ? <ul>{referredAccounts.map((account) => <li key={account.id}><div><strong>{account.name || account.email || 'Người dùng'}</strong><code>Mã {account.id}</code></div><span>{account.email}</span><span>Đăng nhập gần nhất: {account.last_login_at ? new Date(account.last_login_at).toLocaleString('vi-VN') : 'Chưa đăng nhập'}</span><strong>Dịch vụ đã dùng: {account.services?.length || 0} lượt</strong>{account.services?.length > 0 && <ul>{account.services.map((service) => <li key={service.id}><strong>{service.ho_ten ? `Lập lá số tử vi · ${service.ho_ten}` : 'Lập lá số tử vi'}</strong><span>{service.chart_code ? `Mã lá số ${service.chart_code} · ` : ''}{service.updated_at || service.created_at ? new Date(service.updated_at || service.created_at).toLocaleString('vi-VN') : 'Chưa rõ thời gian'}</span></li>)}</ul>}</li>)}</ul> : <p>Chưa có user nào đăng ký qua mã giới thiệu này.</p>}</section>}
               {user.account_type === 'collaborator' && user.referral_code && <div className="auth-referral-card"><span>Mã giới thiệu của bạn</span><strong>{user.referral_code}</strong><a href={`/?ref=${encodeURIComponent(user.referral_code)}`}>{window.location.origin}/?ref={user.referral_code}</a></div>}
             </div>
             <button type="button" className="btn-auth-logout" onClick={handleLogout}>ĐĂNG XUẤT</button>

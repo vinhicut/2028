@@ -24,6 +24,7 @@ import ChatWidget from '../shared/ui/ChatWidget';
 import ArticleManager from '../pages/admin/ArticleManager';
 import PhatPhapPage from '../pages/articles/PhatPhapPage';
 import UserManagement from '../pages/admin/UserManagement';
+import CoursesPage from '../pages/courses/CoursesPage';
 function App() {
   const { pathname } = useLocation();
 
@@ -70,7 +71,7 @@ function App() {
           {/* Các phân hệ đang trong quá trình phát triển UI&UX */}
           <Route path="/lien-he" element={<UnderDevelopment />} />
           <Route path="/dien-dan" element={<UnderDevelopment />} />
-          <Route path="/khoa-hoc" element={<UnderDevelopment />} />
+          <Route path="/khoa-hoc" element={<CoursesPage />} />
           <Route path="/cua-hang" element={<UnderDevelopment />} />
           <Route path="/ky-mon" element={<QimenArticles />} />
           <Route path="/ky-mon-don-giap" element={<QimenArticles />} />

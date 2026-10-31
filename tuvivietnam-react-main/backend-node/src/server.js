@@ -512,6 +512,56 @@ app.get('/api/customer-logs/my-charts', async (req, res) => {
   }
 });
 
+app.get('/api/customer-logs/my-referred-charts', async (req, res) => {
+  try {
+    const authorization = req.get('authorization');
+    const user = await resolveSessionUser(authorization);
+    if (!user) return res.status(401).json({ status: 'error', message: 'PhiÃªn Ä‘Äƒng nháº­p khÃ´ng há»£p lá»‡.' });
+    if (user.account_type !== 'collaborator') return res.status(403).json({ status: 'error', message: 'TÃ i khoáº£n khÃ´ng pháº£i cá»™ng tÃ¡c viÃªn.' });
+
+    const authMeUrl = process.env.AUTH_ME_URL || 'http://127.0.0.1:8080/api/auth/me';
+    const referralEmailsUrl = process.env.AUTH_REFERRAL_EMAILS_URL || authMeUrl.replace(/\/api\/auth\/me\/?$/, '/api/auth/profile/referred-emails');
+    const referralResponse = await fetch(referralEmailsUrl, {
+      headers: { Authorization: authorization },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!referralResponse.ok) return res.status(403).json({ status: 'error', message: 'KhÃ´ng xÃ¡c minh Ä‘Æ°á»£c danh sÃ¡ch user Ä‘Æ°á»£c giá»›i thiá»‡u.' });
+    const referralPayload = await referralResponse.json();
+    const emails = [...new Set((referralPayload.data?.emails || []).map((email) => String(email).trim().toLowerCase()).filter(Boolean))].slice(0, 500);
+    if (!emails.length) return res.json({ status: 'success', data: [] });
+
+    const placeholders = emails.map(() => 'LOWER(?)').join(', ');
+    const [rows] = await pool.execute(
+      `SELECT id, customer_name AS ho_ten, customer_email, chart_code, created_at
+       FROM customer_chart_logs WHERE LOWER(customer_email) IN (${placeholders})
+       ORDER BY created_at DESC, id DESC`,
+      emails,
+    );
+    res.json({ status: 'success', data: rows });
+  } catch (error) {
+    console.error('Could not read collaborator referred chart history:', error.message);
+    res.status(503).json({ status: 'error', message: 'KhÃ´ng táº£i Ä‘Æ°á»£c lá»‹ch sá»­ user Ä‘Æ°á»£c giá»›i thiá»‡u.' });
+  }
+});
+
+app.get('/api/admin/referral-chart-logs', requireManager, async (req, res) => {
+  const emails = [...new Set(String(req.query.emails || '').split(',').map((email) => email.trim().toLowerCase()).filter((email) => email && email.length <= 254))].slice(0, 200);
+  if (!emails.length) return res.json({ status: 'success', data: [] });
+  try {
+    const placeholders = emails.map(() => 'LOWER(?)').join(', ');
+    const [rows] = await pool.execute(
+      `SELECT id, customer_name AS ho_ten, customer_email, chart_code, created_at
+       FROM customer_chart_logs WHERE LOWER(customer_email) IN (${placeholders})
+       ORDER BY created_at DESC, id DESC`,
+      emails,
+    );
+    res.json({ status: 'success', data: rows });
+  } catch (error) {
+    console.error('Could not read referred users chart history:', error.message);
+    res.status(503).json({ status: 'error', message: 'KhÃ´ng táº£i Ä‘Æ°á»£c lá»‹ch sá»­ dá»‹ch vá»¥ cá»§a user Ä‘Æ°á»£c giá»›i thiá»‡u.' });
+  }
+});
+
 app.get('/api/admin/customer-logs/charts', requireSuperAdmin, async (req, res) => {
   const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 50, 1), 100);
   const offset = Math.max(Number.parseInt(req.query.offset, 10) || 0, 0);

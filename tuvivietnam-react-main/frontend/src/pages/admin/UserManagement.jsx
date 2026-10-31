@@ -19,6 +19,22 @@ export default function UserManagement() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [referralLinkCopied, setReferralLinkCopied] = useState(false);
   const token = localStorage.getItem('tuvi_token') || '';
+  const referredServiceStats = useMemo(() => {
+    const accounts = userDetail?.referred_accounts || [];
+    const serviceCounts = accounts.reduce((counts, account) => {
+      (account.services || []).forEach((service) => {
+        const name = service.service_name || service.service_type || 'Lập lá số tử vi';
+        counts[name] = (counts[name] || 0) + 1;
+      });
+      return counts;
+    }, {});
+    return {
+      accountCount: accounts.length,
+      activeAccountCount: accounts.filter((account) => account.services?.length).length,
+      totalUsage: Object.values(serviceCounts).reduce((sum, count) => sum + count, 0),
+      serviceCounts,
+    };
+  }, [userDetail]);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -108,7 +124,48 @@ export default function UserManagement() {
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.message || 'Không tải được thông tin người dùng.');
-      setUserDetail(result.data);
+      let detail = result.data;
+      if (detail.account_type === 'collaborator' && detail.referred_accounts?.length) {
+        const emails = detail.referred_accounts.map((account) => account.email).filter(Boolean);
+        if (emails.length) {
+          try {
+            const allLogs = [];
+            for (let offset = 0; offset < emails.length; offset += 50) {
+              const batch = emails.slice(offset, offset + 50);
+              const logsResponse = await fetch(`/api/admin/referral-chart-logs?emails=${encodeURIComponent(batch.join(','))}`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              const logsResult = await logsResponse.json().catch(() => ({}));
+              if (logsResponse.ok) allLogs.push(...(logsResult.data || []));
+            }
+            if (allLogs.length) {
+              const logsByEmail = new Map();
+              allLogs.forEach((log) => {
+                const key = String(log.customer_email || '').toLowerCase();
+                if (!logsByEmail.has(key)) logsByEmail.set(key, []);
+                logsByEmail.get(key).push({ ...log, id: `customer-log-${log.id}` });
+              });
+              detail = {
+                ...detail,
+                referred_accounts: detail.referred_accounts.map((account) => {
+                  const savedServices = [...(account.services || [])];
+                  const knownCodes = new Set(savedServices.map((service) => service.chart_code).filter(Boolean));
+                  const customerLogs = [];
+                  (logsByEmail.get(String(account.email || '').toLowerCase()) || []).forEach((log) => {
+                    if (log.chart_code && knownCodes.has(log.chart_code)) return;
+                    if (log.chart_code) knownCodes.add(log.chart_code);
+                    customerLogs.push({ ...log, updated_at: log.created_at });
+                  });
+                  return { ...account, services: [...savedServices, ...customerLogs].sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0)) };
+                }),
+              };
+            }
+          } catch (logsError) {
+            console.warn('Could not load referred account chart history:', logsError);
+          }
+        }
+      }
+      setUserDetail(detail);
     } catch (detailError) {
       setUserDetail({ error: detailError.message });
     } finally {
@@ -158,8 +215,9 @@ export default function UserManagement() {
           <button type="button" className="user-detail-close" aria-label="Đóng" onClick={() => setSelectedUser(null)}><X size={20} /></button>
           <div className="user-detail-heading"><div className="user-detail-avatar">{(selectedUser.name || selectedUser.email || 'U').slice(0, 1).toUpperCase()}</div><div><span>HỒ SƠ NGƯỜI DÙNG</span><h2 id="user-detail-title">{selectedUser.name || 'Chưa có tên'}</h2><p><Mail size={14} /> {selectedUser.email}</p></div></div>
           {detailLoading ? <p className="user-detail-state">Đang tải thông tin…</p> : userDetail?.error ? <p className="user-detail-state error">{userDetail.error}</p> : userDetail && <>
-            <div className="user-detail-facts"><div><span>Mã user</span><strong>{userDetail.id}</strong></div><div><span>Mã cộng tác viên gắn với user</span><strong>{userDetail.referrer_code || (userDetail.account_type === 'collaborator' ? userDetail.referral_code : '') || 'Không có'}</strong></div><div><span>Loại tài khoản</span><strong>{ROLE_LABELS[userDetail.account_type] || `Admin ${userDetail.admin_level || 2}`}</strong></div><div><span>Ngày tạo</span><strong>{userDetail.created_at ? new Date(userDetail.created_at).toLocaleDateString('vi-VN') : 'Chưa có dữ liệu'}</strong></div><div><span>Đăng nhập gần nhất</span><strong>{userDetail.last_login_at ? new Date(userDetail.last_login_at).toLocaleString('vi-VN') : 'Chưa có dữ liệu'}</strong></div><div><span>Người được giới thiệu</span><strong>{userDetail.referred_users || 0}</strong></div><div><span>Người giới thiệu</span><strong>{userDetail.referrer_name || 'Không có'}{userDetail.referrer_email ? ` · ${userDetail.referrer_email}` : ''}</strong></div>{userDetail.referral_code && <div><span>Mã cộng tác viên</span><strong>{userDetail.referral_code}</strong></div>}</div>
+            <div className="user-detail-facts"><div><span>Mã user</span><strong>{userDetail.id}</strong></div><div><span>Mã cộng tác viên gắn với user</span><strong>{userDetail.referrer_code || (userDetail.account_type === 'collaborator' ? userDetail.referral_code : '') || 'Không có'}</strong>{(userDetail.referrer_code || (userDetail.account_type === 'collaborator' ? userDetail.referral_code : '')) && <a href={`/?ref=${encodeURIComponent(userDetail.referrer_code || userDetail.referral_code)}`} target="_blank" rel="noreferrer">Mở liên kết giới thiệu</a>}</div><div><span>Loại tài khoản</span><strong>{ROLE_LABELS[userDetail.account_type] || `Admin ${userDetail.admin_level || 2}`}</strong></div><div><span>Ngày tạo</span><strong>{userDetail.created_at ? new Date(userDetail.created_at).toLocaleDateString('vi-VN') : 'Chưa có dữ liệu'}</strong></div><div><span>Đăng nhập gần nhất</span><strong>{userDetail.last_login_at ? new Date(userDetail.last_login_at).toLocaleString('vi-VN') : 'Chưa có dữ liệu'}</strong></div><div><span>Người được giới thiệu</span><strong>{userDetail.referred_users || 0}</strong></div><div><span>Người giới thiệu</span><strong>{userDetail.referrer_name || 'Không có'}{userDetail.referrer_email ? ` · ${userDetail.referrer_email}` : ''}</strong></div>{userDetail.referral_code && <div><span>Mã cộng tác viên</span><strong>{userDetail.referral_code}</strong><a href={`/?ref=${encodeURIComponent(userDetail.referral_code)}`} target="_blank" rel="noreferrer">Mở liên kết giới thiệu</a></div>}</div>
             {userDetail.account_type === 'collaborator' && userDetail.referral_code && <div className="user-detail-referral"><span>Liên kết giới thiệu</span><div><a href={`/?ref=${encodeURIComponent(userDetail.referral_code)}`} target="_blank" rel="noreferrer">{`${window.location.origin}/?ref=${userDetail.referral_code}`}</a><button type="button" onClick={copyReferralLink}><Copy size={14} />{referralLinkCopied ? 'Đã sao chép' : 'Sao chép'}</button></div><small>Người mở liên kết và đăng nhập bằng Google sẽ được tạo tài khoản, gắn với cộng tác viên này.</small></div>}
+            {userDetail.account_type === 'collaborator' && <section className="user-detail-referred"><header><h3>Thống kê user được giới thiệu</h3><span>{referredServiceStats.accountCount} user</span></header><div className="user-detail-referral-stats"><div><span>Tổng user được giới thiệu</span><strong>{referredServiceStats.accountCount}</strong></div><div><span>User đã dùng dịch vụ</span><strong>{referredServiceStats.activeAccountCount}</strong></div><div><span>Tổng lượt dịch vụ ghi nhận</span><strong>{referredServiceStats.totalUsage}</strong></div></div>{Object.entries(referredServiceStats.serviceCounts).length > 0 && <div className="user-detail-service-breakdown">{Object.entries(referredServiceStats.serviceCounts).map(([name, count]) => <div key={name}><span>{name}</span><strong>{count} lượt</strong></div>)}</div>}{userDetail.referred_accounts?.length ? <><h4 className="user-detail-referred-list-title">Chi tiết theo user</h4><ul>{userDetail.referred_accounts.map((account) => <li key={account.id}><div className="user-detail-referred-heading"><strong>{account.name || account.email || 'Người dùng'}</strong><code>Mã user: {account.id}</code></div><span>{account.email}</span><div className="user-detail-referred-meta"><span>Đăng nhập gần nhất: {account.last_login_at ? new Date(account.last_login_at).toLocaleString('vi-VN') : 'Chưa đăng nhập'}</span><span>Dịch vụ đã dùng: {account.services?.length || 0}</span></div>{account.services?.length ? <ul>{account.services.map((service) => <li key={service.id}><strong>{service.ho_ten ? `Lập lá số tử vi · ${service.ho_ten}` : 'Lập lá số tử vi'}</strong><span>{service.chart_code ? `Mã lá số ${service.chart_code} · ` : ''}{service.updated_at || service.created_at ? new Date(service.updated_at || service.created_at).toLocaleString('vi-VN') : 'Chưa rõ thời gian'}</span></li>)}</ul> : <small>Chưa ghi nhận dịch vụ đã dùng.</small>}</li>)}</ul></> : <p>Chưa có user nào đăng ký qua mã giới thiệu này.</p>}<small className="user-detail-referral-note">Thống kê dựa trên lịch sử dịch vụ hiện được lưu cho từng tài khoản. Có thể dùng làm dữ liệu đối chiếu khi cấu hình phí giới thiệu.</small></section>}
             <div className="user-detail-services-heading"><h3>Lịch sử lập lá số tử vi và dịch vụ đã sử dụng</h3><span>{userDetail.services?.length || 0}</span></div>
             {userDetail.services?.length ? <ul className="user-detail-services">{userDetail.services.map((service) => <li key={service.id}><CalendarDays size={17} /><div><strong>Lập lá số tử vi{service.ho_ten ? ` · ${service.ho_ten}` : ''}</strong><span>{service.updated_at || service.created_at ? new Date(service.updated_at || service.created_at).toLocaleString('vi-VN') : 'Không rõ thời gian'}{service.chart_code ? ` · Mã ${service.chart_code}` : ''}</span></div></li>)}</ul> : <p className="user-detail-empty">Chưa ghi nhận dịch vụ nào đã lưu cho tài khoản này.</p>}
           </>}

@@ -68,6 +68,25 @@ def auth_profile_chart_logs():
     """Return legacy chart selection logs for the authenticated account."""
     return proxy_customer_api("/api/customer-logs/my-charts")
 
+@auth_bp.route("/profile/referred-emails", methods=["GET"])
+@login_required
+def auth_profile_referred_emails():
+    """Expose only this collaborator's referred account emails to the customer API."""
+    profile = admin_get_user_detail(str(g.current_user["id"]))
+    if not profile or profile.get("account_type") != "collaborator":
+        return jsonify({"status": "error", "message": "Tài khoản không phải cộng tác viên."}), 403
+    emails = [str(account.get("email") or "").strip().lower() for account in profile.get("referred_accounts", [])]
+    return jsonify({"status": "success", "data": {"emails": [email for email in emails if email]}}), 200
+
+@auth_bp.route("/profile/referred-chart-logs", methods=["GET"])
+@login_required
+def auth_profile_referred_chart_logs():
+    """Return chart history belonging to accounts referred by the current collaborator."""
+    profile = admin_get_user_detail(str(g.current_user["id"]))
+    if not profile or profile.get("account_type") != "collaborator":
+        return jsonify({"status": "error", "message": "Tài khoản không phải cộng tác viên."}), 403
+    return proxy_customer_api("/api/customer-logs/my-referred-charts")
+
 @auth_bp.route("/logout", methods=["POST"])
 def auth_logout():
     """Đăng xuất và hủy token phiên làm việc."""

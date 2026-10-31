@@ -25,4 +25,19 @@ Nếu Docker báo orphan container, không dùng `--remove-orphans` tùy tiện;
 
 ## Dữ liệu
 
-Các volume `tuvi_mysql_data`, `tuvi_app_data` và `tuvi_chart_images` giữ dữ liệu qua lần rebuild. Sao lưu định kỳ; không dùng `docker compose down -v` nếu muốn giữ dữ liệu. Firebase service account, nếu dùng, cần được mount read-only vào container `tuvi-website` tại đường dẫn khớp `FIREBASE_CREDENTIALS_PATH`.
+Các volume `tuvi_mysql_data`, `tuvi_app_data` và `tuvi_chart_images` giữ dữ liệu qua lần rebuild. SQLite của Flask được lưu tại `/app/backend/src/data/tuvi.db` và `tuvi_app_data` đã được mount đúng vào thư mục này. Sao lưu định kỳ; không dùng `docker compose down -v` nếu muốn giữ dữ liệu. Firebase service account, nếu dùng, cần được mount read-only vào container `tuvi-website` tại đường dẫn khớp `FIREBASE_CREDENTIALS_PATH`.
+
+### Lưu ý khi sửa lỗi volume lần đầu
+
+Bản cũ từng mount volume vào `/app/backend/data`, trong khi ứng dụng thực tế ghi vào `/app/backend/src/data`. Trước lần deploy đầu tiên sau khi sửa Compose, hãy sao lưu database đang nằm trong container cũ:
+
+```sh
+mkdir -p backup
+docker cp tuvi_hongan_app:/app/backend/src/data/tuvi.db ./backup/tuvi.db
+docker compose down
+docker compose up -d --build
+docker run --rm -v tuvi_app_data:/data -v "$(pwd)/backup:/backup:ro" alpine sh -c 'cp /backup/tuvi.db /data/tuvi.db'
+docker compose restart tuvi-website
+```
+
+Nếu server đã có bản backup/database production khác, dùng bản đó thay cho `./backup/tuvi.db`. Không chạy `docker compose down -v`.

@@ -386,6 +386,16 @@ def admin_get_user_detail(user_id: str) -> Optional[Dict[str, Any]]:
                           gio_sinh, phut_sinh, loai_lich, nam_xem_han, created_at, updated_at
                      FROM user_charts WHERE user_id = ? ORDER BY updated_at DESC""", (user_id,))
         result['services'] = [dict(row) for row in cur.fetchall()]
+        result['referred_accounts'] = []
+        if result.get('account_type') == 'collaborator':
+            cur.execute("""SELECT id, name, email, created_at, last_login_at
+                         FROM users WHERE referred_by_user_id = ? ORDER BY created_at DESC""", (user_id,))
+            referred_accounts = [dict(row) for row in cur.fetchall()]
+            for account in referred_accounts:
+                cur.execute("""SELECT id, chart_code, ho_ten, created_at, updated_at
+                             FROM user_charts WHERE user_id = ? ORDER BY updated_at DESC""", (account['id'],))
+                account['services'] = [dict(row) for row in cur.fetchall()]
+            result['referred_accounts'] = referred_accounts
         return result
     finally:
         conn.close()

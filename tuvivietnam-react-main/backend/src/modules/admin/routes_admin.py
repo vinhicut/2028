@@ -26,6 +26,12 @@ def get_user_detail(user_id):
         return jsonify({"status": "error", "message": "Không tìm thấy người dùng."}), 404
     return jsonify({"status": "success", "data": user}), 200
 
+@admin_bp.route("/referral-chart-logs", methods=["GET"])
+@permission_required("users")
+def list_referred_user_chart_logs():
+    """Return chart history for referred accounts in a collaborator detail popup."""
+    return proxy_customer_api("/api/admin/referral-chart-logs")
+
 
 @admin_bp.route("/users", methods=["POST"])
 @permission_required("users")
