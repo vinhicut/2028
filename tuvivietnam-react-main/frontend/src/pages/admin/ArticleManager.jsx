@@ -7,13 +7,14 @@ import './ArticleManagerWord.css';
 import { escapeRichText, hasRichText, parseArticleContent, sanitizeRichText, serializeArticleContent } from '../../shared/utils/articleContent';
 import ArticleBody from '../../shared/ui/ArticleBody';
 
-const initialBlocks = () => [{ type: 'text', text: '', align: 'left', font: 'Georgia, serif', color: '#3f3933', fontSize: 16 }];
-const emptyArticle = { title: '', slug: '', excerpt: '', cover_image: '', category: 'Phật pháp', content: JSON.stringify(initialBlocks()), status: 'draft' };
+const initialBlocks = () => [{ type: 'text', text: '', align: 'left', font: "'Be Vietnam Pro', Arial, sans-serif", color: '#3f3933', fontSize: 16, columns: 1 }];
+const emptyCourseMeta = { eyebrow: 'Nổi bật tháng này', status: 'Đang mở đăng ký', startDate: '', format: '', group: 'Nhóm học nhỏ', oldPrice: '', price: '' };
+const emptyArticle = { title: '', slug: '', excerpt: '', cover_image: '', category: 'Phật pháp', course_meta: JSON.stringify(emptyCourseMeta), content: JSON.stringify(initialBlocks()), status: 'draft' };
 const headers = () => ({ Authorization: `Bearer ${localStorage.getItem('tuvi_token') || ''}`, 'Content-Type': 'application/json' });
 
-export default function ArticleManager() {
+export default function ArticleManager({ defaultCategory = 'Phật pháp' }) {
   const [articles, setArticles] = useState([]);
-  const [article, setArticle] = useState(emptyArticle);
+  const [article, setArticle] = useState(() => ({ ...emptyArticle, category: defaultCategory }));
   const [editingId, setEditingId] = useState(null);
   const [authorized, setAuthorized] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -26,12 +27,14 @@ export default function ArticleManager() {
   const [activeBlockIndex, setActiveBlockIndex] = useState(0);
   const [pageMargin, setPageMargin] = useState('normal');
   const [selectedColor, setSelectedColor] = useState('#3f3933');
-  const [previewContent, setPreviewContent] = useState(emptyArticle.content);
+  const [previewContent, setPreviewContent] = useState(() => ({ ...emptyArticle, category: defaultCategory }).content);
   const coverInput = useRef(null);
   const bodyInput = useRef(null);
   const editorElements = useRef({});
   const editorHtml = useRef({});
   const savedSelection = useRef(null);
+  const courseMeta = (() => { try { return { ...emptyCourseMeta, ...(JSON.parse(article.course_meta || '{}')) }; } catch { return emptyCourseMeta; } })();
+  const updateCourseMeta = (key, value) => update('course_meta', JSON.stringify({ ...courseMeta, [key]: value }));
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -52,10 +55,10 @@ export default function ArticleManager() {
   useEffect(() => { load(); }, [load]);
 
   const update = (key, value) => setArticle((current) => ({ ...current, [key]: value }));
-  const startNew = () => { setArticle(emptyArticle); setEditingId(null); editorHtml.current = {}; setNotice(''); setError(''); setPreview(false); };
+  const startNew = () => { setArticle({ ...emptyArticle, category: defaultCategory }); setEditingId(null); editorHtml.current = {}; setNotice(''); setError(''); setPreview(false); };
   const editArticle = (item) => {
     editorHtml.current = {};
-    setArticle({ title: item.title, slug: item.slug, excerpt: item.excerpt || '', cover_image: item.cover_image || '', category: item.category || 'Phật pháp', content: JSON.stringify(parseArticleContent(item.content)), status: item.status });
+    setArticle({ title: item.title, slug: item.slug, excerpt: item.excerpt || '', cover_image: item.cover_image || '', category: item.category || defaultCategory, course_meta: item.course_meta || JSON.stringify(emptyCourseMeta), content: JSON.stringify(parseArticleContent(item.content)), status: item.status });
     setEditingId(item.id); setNotice(''); setError(''); setPreview(false);
     document.querySelector('.article-manager-editor')?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -78,6 +81,36 @@ export default function ArticleManager() {
     const selection = window.getSelection();
     const editor = editorElements.current[index];
     if (selection?.rangeCount && editor?.contains(selection.anchorNode)) savedSelection.current = selection.getRangeAt(0).cloneRange();
+  };
+  const handleEditorKeyDown = (event, index) => {
+    if (event.key !== 'Tab') return;
+    event.preventDefault();
+    const editor = editorElements.current[index];
+    const selection = window.getSelection();
+    if (!editor || !selection?.rangeCount || !editor.contains(selection.anchorNode)) return;
+    editor.focus();
+    if (!selection.isCollapsed && selection.toString().trim()) {
+      const selectedRange = selection.getRangeAt(0).cloneRange();
+      const indentRange = document.createRange();
+      indentRange.setStart(selectedRange.startContainer, selectedRange.startOffset);
+      indentRange.collapse(true);
+      indentRange.insertNode(document.createTextNode(event.shiftKey ? '' : '\t'));
+      selection.removeAllRanges();
+      selection.addRange(selectedRange);
+      editorHtml.current[index] = editor.innerHTML;
+      savedSelection.current = selectedRange.cloneRange();
+      return;
+    }
+    if (!document.execCommand('insertText', false, '\t')) {
+      const range = selection.getRangeAt(0);
+      range.deleteContents();
+      range.insertNode(document.createTextNode('\t'));
+      range.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+    editorHtml.current[index] = editor.innerHTML;
+    if (selection.rangeCount) savedSelection.current = selection.getRangeAt(0).cloneRange();
   };
   const applyInlineStyle = (styleName, value) => {
     const index = activeBlockIndex;
@@ -127,7 +160,7 @@ export default function ArticleManager() {
     if (!applyInlineStyle('fontSize', `${fontSize}px`)) setActiveStyle('fontSize', fontSize);
   };
   const addBlock = (type) => {
-    const block = type === 'heading' ? { type, text: '', align: 'left', font: 'Georgia, serif', color: '#713a2e', fontSize: 22 } : { type: 'text', text: '', align: 'left', font: 'Georgia, serif', color: '#3f3933', fontSize: 16 };
+    const block = type === 'heading' ? { type, text: '', align: 'left', font: "'Noto Serif', Georgia, serif", color: '#713a2e', fontSize: 22 } : { type: 'text', text: '', align: 'left', font: "'Be Vietnam Pro', Arial, sans-serif", color: '#3f3933', fontSize: 16, columns: 1 };
     const next = [...getCurrentBlocks(), block];
     setBlocks(next); setActiveBlockIndex(next.length - 1);
   };
@@ -156,7 +189,7 @@ export default function ArticleManager() {
 
     const paragraph = (html = '') => ({ type: current[index]?.type === 'heading' ? 'heading' : 'text',
       ...(current[index] || {}), html, text: '', align: current[index]?.align || 'left',
-      font: current[index]?.font || 'Georgia, serif', color: current[index]?.color || '#3f3933',
+      font: current[index]?.font || "'Be Vietnam Pro', Arial, sans-serif", color: current[index]?.color || '#3f3933',
       fontSize: current[index]?.fontSize || 16 });
     const next = [...current];
     if (beforeHtml !== undefined) {
@@ -237,19 +270,32 @@ export default function ArticleManager() {
       {notice && <div className="article-manager-notice" role="status">{notice}</div>}
       <div className={`article-manager-layout article-word-page ${pageMargin}`}>
         <section className="article-manager-editor">
+          {defaultCategory === 'Khóa học' && <section className="course-fixed-fields">
+            <div className="course-fixed-heading"><strong>Thông tin hiển thị khóa học</strong><small>Nhập các trường theo đúng mẫu giao diện khóa học.</small></div>
+            <div className="course-fixed-grid">
+              <label>Nhãn nổi bật<input value={courseMeta.eyebrow} onChange={(event) => updateCourseMeta('eyebrow', event.target.value)} placeholder="Nổi bật tháng này" /></label>
+              <label>Trạng thái<input value={courseMeta.status} onChange={(event) => updateCourseMeta('status', event.target.value)} placeholder="Đang mở đăng ký" /></label>
+              <label>Khai giảng<input value={courseMeta.startDate} onChange={(event) => updateCourseMeta('startDate', event.target.value)} placeholder="08/11/2026" /></label>
+              <label>Thời lượng<input value={courseMeta.format} onChange={(event) => updateCourseMeta('format', event.target.value)} placeholder="16 buổi · 8 tuần" /></label>
+              <label>Đối tượng / nhóm học<input value={courseMeta.group} onChange={(event) => updateCourseMeta('group', event.target.value)} placeholder="Nhóm học nhỏ" /></label>
+              <label>Giá cũ<input value={courseMeta.oldPrice} onChange={(event) => updateCourseMeta('oldPrice', event.target.value)} placeholder="4.000.000đ" /></label>
+              <label>Giá hiện tại<input value={courseMeta.price} onChange={(event) => updateCourseMeta('price', event.target.value)} placeholder="2.000.000đ" /></label>
+            </div>
+            <div className="course-fixed-preview"><div className="course-preview-label-row"><span>{courseMeta.eyebrow || 'Nổi bật tháng này'}</span><b>{courseMeta.status || 'Đang mở đăng ký'}</b></div><h3>{article.title || 'Khóa học Tử Vi Cơ Bản'}</h3><p>{article.excerpt || 'Mô tả ngắn khóa học sẽ hiển thị tại đây.'}</p><div className="course-preview-facts"><span>▣ {courseMeta.startDate || 'Khai giảng'}</span><span>◷ {courseMeta.format || 'Thời lượng'}</span><span>♙ {courseMeta.group || 'Nhóm học nhỏ'}</span></div><div className="course-preview-price"><del>{courseMeta.oldPrice}</del><strong>{courseMeta.price || 'Giá khóa học'}</strong></div></div>
+          </section>}
           <div className="article-manager-section-title"><div><FileText size={18} /><h2>{editingId ? 'Chỉnh sửa bài viết' : 'Soạn bài mới'}</h2></div><span>{article.status === 'published' ? 'Đã xuất bản' : 'Bản nháp'}</span></div>
           <label>Tiêu đề<input maxLength={240} value={article.title} onChange={(event) => update('title', event.target.value)} placeholder="Ví dụ: Tinh thần từ bi trong đời sống hằng ngày" /></label>
-          <div className="article-manager-two-col"><label>Đường dẫn (slug)<input maxLength={255} value={article.slug} onChange={(event) => update('slug', event.target.value)} placeholder="Tự tạo từ tiêu đề nếu để trống" /></label><label>Chuyên mục<input value="Phật pháp" readOnly /></label></div>
+          <div className="article-manager-two-col"><label>Đường dẫn (slug)<input maxLength={255} value={article.slug} onChange={(event) => update('slug', event.target.value)} placeholder="Tự tạo từ tiêu đề nếu để trống" /></label><label>Chuyên mục<select value={article.category} onChange={(event) => update('category', event.target.value)}><option value="Phật pháp">Phật pháp</option><option value="Khóa học">Khóa học</option></select></label></div>
           <label>Mô tả ngắn<textarea rows={2} maxLength={600} value={article.excerpt} onChange={(event) => update('excerpt', event.target.value)} placeholder="Một vài câu giới thiệu bài viết" /></label>
           <label>Ảnh bìa<input maxLength={1000} value={article.cover_image} onChange={(event) => update('cover_image', event.target.value)} placeholder="Dán URL ảnh hoặc tải ảnh lên" /><span className="article-manager-upload-row"><button type="button" onClick={() => coverInput.current?.click()} disabled={uploading}><ImagePlus size={15} /> {uploading ? 'Đang tải ảnh…' : 'Tải ảnh bìa lên'}</button><input ref={coverInput} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={(event) => uploadImage(event.target.files?.[0], (url) => update('cover_image', url))} /></span></label>
           <section className="article-manager-blocks">
     <nav className="article-word-ribbon" aria-label="Công cụ soạn bài"><div className="article-word-tabs"><button type="button" className={ribbonTab === 'home' ? 'active' : ''} onClick={() => setRibbonTab('home')}>Trang đầu</button><button type="button" className={ribbonTab === 'insert' ? 'active' : ''} onClick={() => setRibbonTab('insert')}>Chèn</button><button type="button" className={ribbonTab === 'layout' ? 'active' : ''} onClick={() => setRibbonTab('layout')}>Bố trí</button></div>
       {ribbonTab === 'home' && <div className="article-word-tools"><div className="article-word-tool-group"><select aria-label="Font chữ" value={activeBlock.font || 'Georgia, serif'} onChange={(event) => setActiveStyle('font', event.target.value)} disabled={activeBlock.type === 'image'}><option value="Georgia, serif">Georgia</option><option value="Arial, sans-serif">Arial</option><option value="'Times New Roman', serif">Times New Roman</option><option value="system-ui, sans-serif">Be Vietnam Pro</option></select><select aria-label="Kiểu đoạn" value={activeBlock.type === 'heading' ? 'heading' : 'body'} onChange={(event) => setActiveStyle('type', event.target.value === 'heading' ? 'heading' : 'text')}><option value="body">Văn bản thường</option><option value="heading">Tiêu đề mục</option></select><select aria-label="Cỡ chữ" value={activeBlock.fontSize || 16} onMouseDown={() => rememberSelection(activeBlockIndex)} onChange={(event) => applySelectedFontSize(Number(event.target.value))}><option value={12}>12</option><option value={14}>14</option><option value={16}>16</option><option value={18}>18</option><option value={20}>20</option><option value={24}>24</option><option value={28}>28</option><option value={32}>32</option><option value={36}>36</option></select><small>Kiểu chữ</small></div><div className="article-word-tool-group article-word-inline-tools"><button type="button" aria-label="Đậm" title="Đậm phần chữ đang bôi đen" onMouseDown={(event) => event.preventDefault()} onClick={() => applySelectionCommand('bold')}><Bold size={16} /></button><button type="button" aria-label="Nghiêng" title="Nghiêng phần chữ đang bôi đen" onMouseDown={(event) => event.preventDefault()} onClick={() => applySelectionCommand('italic')}><Italic size={16} /></button><button type="button" aria-label="Gạch chân" title="Gạch chân phần chữ đang bôi đen" onMouseDown={(event) => event.preventDefault()} onClick={() => applySelectionCommand('underline')}><Underline size={16} /></button><div className="article-word-color" style={{ "--article-current-color": selectedColor }} title="Chọn màu cho phần chữ được chọn"><button type="button" aria-label="Mở bảng màu chữ" onMouseDown={(event) => { event.preventDefault(); rememberSelection(activeBlockIndex); }} onClick={() => setColorPickerOpen((open) => !open)}><span>A</span></button>{<div className="article-word-color-palette" role="group" aria-label="Bảng màu chữ">{["#000000", "#3f3933", "#7f2920", "#c62828", "#e65100", "#f9a825", "#2e7d32", "#00838f", "#1565c0", "#4527a0", "#ad1457", "#ffffff"].map((color) => <button type="button" key={color} aria-label={`Màu ${color}`} title={color} style={{ backgroundColor: color }} onMouseDown={(event) => event.preventDefault()} onClick={() => applySelectedColor(color)} />)}<input aria-label="Màu chữ tùy chọn" type="color" value={selectedColor} onMouseDown={() => rememberSelection(activeBlockIndex)} onChange={(event) => applySelectedColor(event.target.value)} /></div>}</div><small>Phông chữ</small></div><div className="article-word-tool-group article-word-inline-tools"><button type="button" className={activeBlock.align === 'left' || !activeBlock.align ? 'selected' : ''} aria-label="Căn trái" onClick={() => setActiveStyle('align', 'left')}><AlignLeft size={16} /></button><button type="button" className={activeBlock.align === 'center' ? 'selected' : ''} aria-label="Căn giữa" onClick={() => setActiveStyle('align', 'center')}><AlignCenter size={16} /></button><button type="button" className={activeBlock.align === 'right' ? 'selected' : ''} aria-label="Căn phải" onClick={() => setActiveStyle('align', 'right')}><AlignRight size={16} /></button><button type="button" className={activeBlock.align === 'justify' ? 'selected' : ''} aria-label="Căn đều" onClick={() => setActiveStyle('align', 'justify')}><AlignJustify size={16} /></button><small>Đoạn văn</small></div></div>}
       {ribbonTab === 'insert' && <div className="article-word-tools article-word-insert-tools"><button type="button" onClick={() => addBlock('text')}><Plus size={16} /> Đoạn văn</button><button type="button" onClick={() => addBlock('heading')}><Plus size={16} /> Tiêu đề mục</button><button type="button" onMouseDown={(event) => { event.preventDefault(); rememberSelection(activeBlockIndex); }} onClick={() => bodyInput.current?.click()} disabled={uploading}><FileImage size={16} /> {uploading ? 'Đang tải ảnh…' : 'Ảnh trong bài'}</button><button type="button" onClick={() => coverInput.current?.click()} disabled={uploading}><ImagePlus size={16} /> Ảnh bìa</button></div>}
-      {ribbonTab === 'layout' && <div className="article-word-tools article-word-layout-tools"><span><Layout size={16} /> Lề trang</span>{[['narrow', 'Hẹp'], ['normal', 'Bình thường'], ['wide', 'Rộng']].map(([value, label]) => <button type="button" key={value} className={pageMargin === value ? 'selected' : ''} onClick={() => setPageMargin(value)}>{label}</button>)}</div>}
+      {ribbonTab === 'layout' && <div className="article-word-tools article-word-layout-tools"><span><Layout size={16} /> Lề trang</span>{[['narrow', 'Hẹp'], ['normal', 'Bình thường'], ['wide', 'Rộng']].map(([value, label]) => <button type="button" key={value} className={pageMargin === value ? 'selected' : ''} onClick={() => setPageMargin(value)}>{label}</button>)}<span className="article-word-columns-label">Chia văn bản</span>{[[1, '1 cột'], [2, '2 cột'], [3, '3 cột'], [4, '4 cột']].map(([value, label]) => <button type="button" key={value} className={Number(activeBlock.columns || 1) === value ? 'selected' : ''} onClick={() => setActiveStyle('columns', value)} disabled={activeBlock.type !== 'text'}>{label}</button>)}</div>}
     </nav><div className="article-manager-blocks-heading"><div><strong>Nội dung bài viết</strong><small>Chọn một đoạn rồi dùng thanh công cụ để định dạng.</small></div><div><button type="button" onClick={() => addBlock('text')}><Plus size={14} /> Đoạn văn</button><button type="button" onClick={() => addBlock('heading')}><Plus size={14} /> Tiêu đề mục</button><button type="button" onMouseDown={(event) => { event.preventDefault(); rememberSelection(activeBlockIndex); }} onClick={() => bodyInput.current?.click()} disabled={uploading}><ImagePlus size={14} /> Ảnh trong bài</button><input ref={bodyInput} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; uploadImage(file, (url) => insertUploadedImage(url, file)); }} /></div></div>
             {blocks.map((block, index) => <div className="article-manager-block" key={index}><div className="article-manager-block-top"><span>{block.type === 'image' ? 'HÌNH ẢNH' : block.type === 'heading' ? 'TIÊU ĐỀ MỤC' : `ĐOẠN ${index + 1}`}</span><button type="button" onClick={() => setBlocks(blocks.filter((_, blockIndex) => blockIndex !== index))} aria-label="Xóa khối nội dung"><Trash2 size={14} /></button></div>
-              {block.type === 'image' ? <><img className="article-manager-inline-preview" src={block.src} alt={block.alt || ''} /><input value={block.caption || ''} onFocus={() => setActiveBlockIndex(index)} onChange={(event) => updateBlock(index, { caption: event.target.value })} placeholder="Chú thích ảnh (không bắt buộc)" /></> : <div className={block.type === 'heading' ? 'article-manager-heading-input article-word-editable' : 'article-manager-content-input article-word-editable'} contentEditable suppressContentEditableWarning role="textbox" aria-multiline="true" aria-label={block.type === 'heading' ? 'Tiêu đề mục' : 'Nội dung đoạn văn'} data-placeholder={block.type === 'heading' ? 'Nhập tiêu đề mục' : 'Bắt đầu viết nội dung tại đây…'} spellCheck ref={(element) => { if (element) editorElements.current[index] = element; else delete editorElements.current[index]; }} onFocus={() => { setActiveBlockIndex(index); rememberSelection(index); }} onMouseUp={() => rememberSelection(index)} onKeyUp={() => rememberSelection(index)} onInput={(event) => { editorHtml.current[index] = event.currentTarget.innerHTML; }} dangerouslySetInnerHTML={{ __html: block.html ? sanitizeRichText(block.html) : escapeRichText(block.text || '') }} style={{ textAlign: block.align || 'left', fontFamily: block.font || 'Georgia, serif', color: block.color || '#3f3933', fontWeight: block.bold ? 700 : 400, fontStyle: block.italic ? 'italic' : 'normal', textDecoration: block.underline ? 'underline' : 'none', fontSize: block.fontSize ? `${block.fontSize}px` : undefined }} />}
+              {block.type === 'image' ? <><img className="article-manager-inline-preview" src={block.src} alt={block.alt || ''} /><input value={block.caption || ''} onFocus={() => setActiveBlockIndex(index)} onChange={(event) => updateBlock(index, { caption: event.target.value })} placeholder="Chú thích ảnh (không bắt buộc)" /></> : <div className={block.type === 'heading' ? 'article-manager-heading-input article-word-editable' : 'article-manager-content-input article-word-editable'} contentEditable suppressContentEditableWarning role="textbox" aria-multiline="true" aria-label={block.type === 'heading' ? 'Tiêu đề mục' : 'Nội dung đoạn văn'} data-placeholder={block.type === 'heading' ? 'Nhập tiêu đề mục' : 'Bắt đầu viết nội dung tại đây…'} spellCheck ref={(element) => { if (element) editorElements.current[index] = element; else delete editorElements.current[index]; }} onFocus={() => { setActiveBlockIndex(index); rememberSelection(index); }} onMouseUp={() => rememberSelection(index)} onKeyDown={(event) => handleEditorKeyDown(event, index)} onKeyUp={() => rememberSelection(index)} onInput={(event) => { editorHtml.current[index] = event.currentTarget.innerHTML; }} dangerouslySetInnerHTML={{ __html: block.html ? sanitizeRichText(block.html) : escapeRichText(block.text || '') }} style={{ textAlign: block.align || 'left', fontFamily: block.font || 'Georgia, serif', color: block.color || '#3f3933', fontWeight: block.bold ? 700 : 400, fontStyle: block.italic ? 'italic' : 'normal', textDecoration: block.underline ? 'underline' : 'none', fontSize: block.fontSize ? `${block.fontSize}px` : undefined, columnCount: block.type === 'text' ? Number(block.columns || 1) : 1, columnGap: '2em' }} />}
             </div>)}
           </section>
           <div className="article-manager-actions"><button type="button" className="article-manager-preview" onClick={() => { setPreviewContent(getCurrentContent()); setPreview((value) => !value); }}><Eye size={16} /> {preview ? 'Đóng xem trước' : 'Xem trước'}</button><span className="article-manager-action-spacer" /><button type="button" className="article-manager-save" onClick={() => save('draft')} disabled={saving || !article.title.trim()}><Save size={16} /> Lưu nháp</button><button type="button" className="article-manager-publish" onClick={() => save('published')} disabled={saving || !article.title.trim()}><Send size={16} /> {saving ? 'Đang lưu…' : 'Xuất bản'}</button></div>

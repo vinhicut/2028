@@ -25,6 +25,7 @@ import ArticleManager from '../pages/admin/ArticleManager';
 import PhatPhapPage from '../pages/articles/PhatPhapPage';
 import UserManagement from '../pages/admin/UserManagement';
 import CoursesPage from '../pages/courses/CoursesPage';
+import CourseArticlePage from '../pages/courses/CourseArticlePage';
 function App() {
   const { pathname } = useLocation();
 
@@ -46,6 +47,7 @@ function App() {
           <Route path="/quan-ly" element={<QuanLy />} />
           <Route path="/quan-ly/nguoi-dung" element={<UserManagement />} />
           <Route path="/quan-ly/bai-viet" element={<ArticleManager />} />
+          <Route path="/quan-ly/khoa-hoc" element={<ArticleManager defaultCategory="Khóa học" />} />
           <Route path="/phat-phap" element={<PhatPhapPage />} />
           <Route path="/phat-phap/:slug" element={<PhatPhapPage />} />
           <Route
@@ -72,6 +74,7 @@ function App() {
           <Route path="/lien-he" element={<UnderDevelopment />} />
           <Route path="/dien-dan" element={<UnderDevelopment />} />
           <Route path="/khoa-hoc" element={<CoursesPage />} />
+          <Route path="/khoa-hoc/bai-viet/:slug" element={<CourseArticlePage />} />
           <Route path="/cua-hang" element={<UnderDevelopment />} />
           <Route path="/ky-mon" element={<QimenArticles />} />
           <Route path="/ky-mon-don-giap" element={<QimenArticles />} />

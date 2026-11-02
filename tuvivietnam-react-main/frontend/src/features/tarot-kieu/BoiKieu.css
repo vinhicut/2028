@@ -47,6 +47,11 @@
   position: relative;
 }
 
+.boikieu-nav-item.has-dropdown > button {
+  color: #c62828;
+  font-weight: 800;
+}
+
 .boikieu-nav-item .boikieu-caret {
   margin-left: 6px;
   font-size: 11px;

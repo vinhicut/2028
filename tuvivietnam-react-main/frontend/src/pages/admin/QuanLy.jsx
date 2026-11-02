@@ -173,7 +173,7 @@ export default function QuanLy() {
   }, [selectedLog]);
 
   if (!loading && authorized && adminLevel !== 1) {
-    return <main className="customer-admin-page"><header className="customer-admin-heading"><div><span className="customer-admin-eyebrow"><ShieldCheck size={15} /> KHU VỰC QUẢN TRỊ</span><h1>Quản trị nội dung và người dùng</h1><p>Admin {adminLevel} có quyền quản lý bài viết và tài khoản người dùng.</p></div><div className="customer-admin-heading-actions"><Link className="customer-admin-articles-link" to="/quan-ly/nguoi-dung">Quản lý người dùng</Link><Link className="customer-admin-articles-link" to="/quan-ly/bai-viet">Quản lý bài viết</Link></div></header><AdminChatPanel /></main>;
+    return <main className="customer-admin-page"><header className="customer-admin-heading"><div><span className="customer-admin-eyebrow"><ShieldCheck size={15} /> KHU VỰC QUẢN TRỊ</span><h1>Quản trị nội dung và người dùng</h1><p>Admin {adminLevel} có quyền quản lý bài viết và tài khoản người dùng.</p></div><div className="customer-admin-heading-actions"><Link className="customer-admin-articles-link" to="/quan-ly/nguoi-dung">Quản lý người dùng</Link><Link className="customer-admin-articles-link" to="/quan-ly/bai-viet">Quản lý bài viết</Link><Link className="customer-admin-articles-link" to="/quan-ly/khoa-hoc">Viết bài khóa học</Link></div></header><AdminChatPanel /></main>;
   }
 
   const filteredLogs = useMemo(() => {
@@ -194,6 +194,7 @@ export default function QuanLy() {
         <div className="customer-admin-heading-actions">
           {authorized && <Link className="customer-admin-articles-link" to="/quan-ly/nguoi-dung">Quản lý người dùng</Link>}
           {authorized && <Link className="customer-admin-articles-link" to="/quan-ly/bai-viet">Quản lý bài viết</Link>}
+          {authorized && <Link className="customer-admin-articles-link" to="/quan-ly/khoa-hoc">Viết bài khóa học</Link>}
           <button type="button" className="customer-admin-refresh" onClick={loadLogs} disabled={loading}>
             <RefreshCw size={16} className={loading ? 'customer-admin-spinning' : ''} /> Làm mới
           </button>

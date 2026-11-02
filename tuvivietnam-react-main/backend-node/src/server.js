@@ -90,6 +90,14 @@ async function initializeDatabase() {
       INDEX idx_articles_status_published (status, published_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
+  const [articleColumns] = await pool.execute(
+    `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'articles' AND COLUMN_NAME = 'course_meta'`,
+  );
+  if (!articleColumns.length) await pool.execute('ALTER TABLE articles ADD COLUMN course_meta TEXT NULL AFTER category');
+  await pool.execute(
+    "UPDATE articles SET category = 'Khóa học' WHERE category = 'Phật pháp' AND (LOWER(title) LIKE '%khóa học%' OR LOWER(excerpt) LIKE '%khóa học%')",
+  );
   const [columns] = await pool.execute(
     `SELECT COLUMN_NAME FROM information_schema.COLUMNS
      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customer_chart_logs'`,
@@ -234,12 +242,12 @@ app.get('/api/articles', async (req, res) => {
   const slug = String(req.query.slug || '').trim();
   try {
     if (slug) {
-      const [rows] = await pool.execute("SELECT id, title, slug, excerpt, content, cover_image, category, author, published_at, created_at FROM articles WHERE slug = ? AND status = 'published' LIMIT 1", [slug]);
+      const [rows] = await pool.execute("SELECT id, title, slug, excerpt, content, cover_image, category, course_meta, author, published_at, created_at FROM articles WHERE slug = ? AND status = 'published' LIMIT 1", [slug]);
       if (!rows.length) return res.status(404).json({ status: 'error', message: 'Không tìm thấy bài viết.' });
       return res.json({ status: 'success', data: rows[0] });
     }
     const category = String(req.query.category || '').trim();
-    const [rows] = await pool.execute("SELECT id, title, slug, excerpt, cover_image, category, author, published_at, created_at FROM articles WHERE status = 'published' AND (? = '' OR category = ?) ORDER BY published_at DESC, id DESC", [category, category]);
+    const [rows] = await pool.execute("SELECT id, title, slug, excerpt, cover_image, category, course_meta, author, published_at, created_at FROM articles WHERE status = 'published' AND (? = '' OR category = ?) ORDER BY published_at DESC, id DESC", [category, category]);
     res.json({ status: 'success', data: rows });
   } catch (error) {
     console.error('Could not read articles:', error.message);
@@ -249,7 +257,7 @@ app.get('/api/articles', async (req, res) => {
 
 app.get('/api/admin/articles', requireManager, async (_req, res) => {
   try {
-    const [rows] = await pool.execute('SELECT id, title, slug, excerpt, content, cover_image, category, status, author, published_at, created_at, updated_at FROM articles ORDER BY updated_at DESC, id DESC');
+    const [rows] = await pool.execute('SELECT id, title, slug, excerpt, content, cover_image, category, course_meta, status, author, published_at, created_at, updated_at FROM articles ORDER BY updated_at DESC, id DESC');
     res.json({ status: 'success', data: rows });
   } catch (error) {
     console.error('Could not read admin articles:', error.message);
@@ -263,15 +271,16 @@ app.post('/api/admin/articles', requireManager, async (req, res) => {
   const content = String(req.body?.content || '').trim();
   const slug = articleSlug(req.body?.slug || title);
   const coverImage = String(req.body?.cover_image || '').trim();
-  const category = 'Phật pháp';
+  const courseMeta = String(req.body?.course_meta || '').trim().slice(0, 10000) || null;
+  const category = req.body?.category === 'Khóa học' ? 'Khóa học' : 'Phật pháp';
   const status = req.body?.status === 'published' ? 'published' : 'draft';
   if (!title || !slug || !content) return res.status(400).json({ status: 'error', message: 'Cần nhập tiêu đề và nội dung bài viết.' });
   if (title.length > 240 || excerpt.length > 600 || content.length > 1000000 || coverImage.length > 1000) return res.status(400).json({ status: '400', message: 'Nội dung quá dài (tối đa 1.000.000 ký tự).' });
   try {
     const [result] = await pool.execute(
-      `INSERT INTO articles (title, slug, excerpt, content, cover_image, category, status, author, published_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, IF(? = 'published', CURRENT_TIMESTAMP(3), NULL))`,
-      [title, slug, excerpt, content, coverImage || null, category || 'Phật pháp', status, String(req.managerUser.name || 'Quản trị viên').slice(0, 120), status],
+      `INSERT INTO articles (title, slug, excerpt, content, cover_image, category, course_meta, status, author, published_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, IF(? = 'published', CURRENT_TIMESTAMP(3), NULL))`,
+      [title, slug, excerpt, content, coverImage || null, category, courseMeta, status, String(req.managerUser.name || 'Quản trị viên').slice(0, 120), status],
     );
     const [rows] = await pool.execute('SELECT * FROM articles WHERE id = ?', [result.insertId]);
     res.status(201).json({ status: 'success', data: rows[0] });
@@ -289,16 +298,17 @@ app.put('/api/admin/articles/:id', requireManager, async (req, res) => {
   const content = String(req.body?.content || '').trim();
   const slug = articleSlug(req.body?.slug || title);
   const coverImage = String(req.body?.cover_image || '').trim();
-  const category = 'Phật pháp';
+  const courseMeta = String(req.body?.course_meta || '').trim().slice(0, 10000) || null;
+  const category = req.body?.category === 'Khóa học' ? 'Khóa học' : 'Phật pháp';
   const status = req.body?.status === 'published' ? 'published' : 'draft';
   if (!Number.isSafeInteger(id) || id < 1) return res.status(400).json({ status: 'error', message: 'Mã bài viết không hợp lệ.' });
   if (!title || !slug || !content) return res.status(400).json({ status: 'error', message: 'Cần nhập tiêu đề và nội dung bài viết.' });
   if (title.length > 240 || excerpt.length > 600 || content.length > 1000000 || coverImage.length > 1000) return res.status(400).json({ status: '400', message: 'Nội dung quá dài (tối đa 1.000.000 ký tự).' });
   try {
     const [result] = await pool.execute(
-      `UPDATE articles SET title = ?, slug = ?, excerpt = ?, content = ?, cover_image = ?, category = ?, status = ?,
+      `UPDATE articles SET title = ?, slug = ?, excerpt = ?, content = ?, cover_image = ?, category = ?, course_meta = ?, status = ?,
        author = ?, published_at = IF(? = 'published', COALESCE(published_at, CURRENT_TIMESTAMP(3)), NULL) WHERE id = ?`,
-      [title, slug, excerpt, content, coverImage || null, category || 'Phật pháp', status, String(req.managerUser.name || 'Quản trị viên').slice(0, 120), status, id],
+      [title, slug, excerpt, content, coverImage || null, category, courseMeta, status, String(req.managerUser.name || 'Quản trị viên').slice(0, 120), status, id],
     );
     if (!result.affectedRows) return res.status(404).json({ status: 'error', message: 'Không tìm thấy bài viết.' });
     const [rows] = await pool.execute('SELECT * FROM articles WHERE id = ?', [id]);

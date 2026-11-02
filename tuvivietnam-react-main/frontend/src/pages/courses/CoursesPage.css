@@ -36,3 +36,5 @@
 .featured-course-image{height:420px}
 @media (max-width:900px){.featured-course{grid-template-columns:minmax(0,1.7fr) minmax(260px,1fr)}.featured-course-image{height:340px}}
 @media (max-width:640px){.featured-course{display:block}.featured-course-image{height:220px}}
+.course-articles{margin:0 0 52px}.course-article-card{text-decoration:none;color:inherit}.course-article-placeholder{display:grid;width:100%;height:100%;min-height:164px;place-items:center;background:linear-gradient(135deg,#5c2418,#b87535);color:#f8e9b0}
+.course-article-modal .dharma-content{margin-top:20px}.course-article-modal .dharma-content p{margin:0 0 14px;color:#5b4b42;font:400 14px/1.8 'Be Vietnam Pro',Arial,sans-serif;white-space:pre-wrap}.course-article-modal .dharma-content h2{margin:22px 0 8px;color:#6f3024;font:700 20px/1.35 'Noto Serif',Georgia,serif}.course-modal-author{margin-top:18px;color:#907d6c!important;font-size:12px!important;font-style:italic}

@@ -1,6 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ArrowRight, BookOpen, CalendarDays, Check, Clock3, Search, Users, X } from 'lucide-react';
 import './CoursesPage.css';
+import ArticleBody from '../../shared/ui/ArticleBody';
 
 // Add new course objects here (or replace this list with an API response later).
 const COURSES = [
@@ -60,6 +62,14 @@ function CoursesPage() {
   const [category, setCategory] = useState('Tất cả');
   const [sort, setSort] = useState('newest');
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const [articlePosts, setArticlePosts] = useState([]);
+
+  useEffect(() => {
+    fetch('/api/articles')
+      .then((response) => response.ok ? response.json() : { data: [] })
+      .then((result) => setArticlePosts((result.data || []).filter((article) => article.category === 'Khóa học' || /khóa học/i.test(`${article.title} ${article.excerpt}`))))
+      .catch(() => setArticlePosts([]));
+  }, []);
 
   const filteredCourses = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -69,20 +79,47 @@ function CoursesPage() {
       .sort((a, b) => sort === 'name' ? a.title.localeCompare(b.title, 'vi') : new Date(a.startDate) - new Date(b.startDate));
   }, [category, query, sort]);
 
-  const featuredCourse = COURSES.find((course) => course.featured);
+  const featuredArticle = articlePosts[0];
+  const featuredMeta = (() => { try { return JSON.parse(featuredArticle?.course_meta || '{}'); } catch { return {}; } })();
+  const featuredCourse = featuredArticle ? {
+    id: featuredArticle.id,
+    title: featuredArticle.title,
+    description: featuredArticle.excerpt,
+    image: featuredArticle.cover_image,
+    status: featuredMeta.status || 'Đang mở đăng ký',
+    displayDate: featuredMeta.startDate ? `Khai giảng ${featuredMeta.startDate}` : 'Khai giảng đang cập nhật',
+    format: featuredMeta.format || 'Thời lượng đang cập nhật',
+    group: featuredMeta.group || 'Nhóm học nhỏ',
+    price: featuredMeta.price || 'Đang cập nhật',
+    oldPrice: featuredMeta.oldPrice || '',
+    sourceArticle: true,
+    slug: featuredArticle.slug,
+    content: featuredArticle.content,
+    author: featuredArticle.author,
+  } : COURSES.find((course) => course.featured);
 
   return (
     <div className="courses-page">
       <section className="featured-course" aria-label="Khóa học nổi bật">
-        <div className="featured-course-image"><img src="/khoa-hoc-tu-vi-co-ban-ngang.png" alt="Poster ngang khóa học Tử Vi Cơ Bản" /></div>
+        <div className="featured-course-image"><img src={featuredCourse.image || '/khoa-hoc-tu-vi-co-ban-ngang.png'} alt="Poster khóa học" /></div>
         <div className="featured-course-content">
           <div className="course-label-row"><span className="course-label">Nổi bật tháng này</span><span className="course-status open">{featuredCourse.status}</span></div>
           <h2>{featuredCourse.title}</h2>
           <p className="featured-description">{featuredCourse.description}</p>
-          <div className="course-facts"><span><CalendarDays size={17} /> {featuredCourse.displayDate}</span><span><Clock3 size={17} /> {featuredCourse.format}</span><span><Users size={17} /> Nhóm học nhỏ</span></div>
+          <div className="course-facts"><span><CalendarDays size={17} /> {featuredCourse.displayDate}</span><span><Clock3 size={17} /> {featuredCourse.format}</span><span><Users size={17} /> {featuredCourse.group || 'Nhóm học nhỏ'}</span></div>
           <div className="featured-bottom"><div><span className="old-price">{featuredCourse.oldPrice}</span><strong>{featuredCourse.price}</strong></div><button className="course-dark-btn" onClick={() => setSelectedCourse(featuredCourse)}>Xem chi tiết <ArrowRight size={16} /></button></div>
         </div>
       </section>
+
+      {articlePosts.length > 0 && <section className="course-articles" aria-label="Bài viết khóa học">
+        <div className="catalog-heading"><div><span className="section-eyebrow">Kiến thức khóa học</span><h2>Bài viết mới nhất</h2></div><span className="catalog-count">{articlePosts.length} bài viết</span></div>
+        <div className="course-grid">
+          {articlePosts.map((article) => <Link className="course-card course-article-card" key={article.id} to={`/khoa-hoc/bai-viet/${article.slug}`}>
+            <div className="course-card-image">{article.cover_image ? <img src={article.cover_image} alt="" /> : <div className="course-article-placeholder"><BookOpen size={34} /></div>}</div>
+            <div className="course-card-body"><span className="card-category">Khóa học</span><h3>{article.title}</h3><p>{article.excerpt}</p><div className="card-meta"><span>{article.author}</span><span className="card-arrow"><ArrowRight size={17} /></span></div></div>
+          </Link>)}
+        </div>
+      </section>}
 
       <section className="course-catalog" id="course-list">
         <div className="catalog-heading"><div><span className="section-eyebrow">Lộ trình đang mở</span><h2>Tìm khóa học phù hợp với bạn</h2></div><span className="catalog-count">{filteredCourses.length} khóa học</span></div>
@@ -102,7 +139,7 @@ function CoursesPage() {
 
       <section className="update-banner"><div><span className="section-eyebrow">Luôn được cập nhật</span><h2>Khóa học mới sẽ xuất hiện tại đây</h2><p>Nội dung và lịch khai giảng được bổ sung theo thời gian phát sinh. Hãy quay lại thường xuyên để không bỏ lỡ lộ trình mới.</p></div><a href="tel:0385497085" className="course-primary-btn">Nhận tư vấn <ArrowRight size={17} /></a></section>
 
-      {selectedCourse && <div className="course-modal-backdrop" role="presentation" onClick={() => setSelectedCourse(null)}><div className="course-modal" role="dialog" aria-modal="true" aria-labelledby="course-modal-title" onClick={(event) => event.stopPropagation()}><button className="modal-close" onClick={() => setSelectedCourse(null)} aria-label="Đóng"><X size={20} /></button><span className={`course-status ${selectedCourse.statusTone}`}>{selectedCourse.status}</span><span className="modal-category">{selectedCourse.category} · {selectedCourse.eyebrow}</span><h2 id="course-modal-title">{selectedCourse.title}</h2><p>{selectedCourse.description}</p><div className="modal-facts"><span><CalendarDays size={17} /> {selectedCourse.displayDate}</span><span><Clock3 size={17} /> {selectedCourse.format}</span></div><h3>Nội dung chính</h3><ul>{selectedCourse.lessons.map((lesson) => <li key={lesson}><Check size={16} /> {lesson}</li>)}</ul><a href="tel:0385497085" className="course-dark-btn modal-cta">Liên hệ đăng ký <ArrowRight size={16} /></a></div></div>}
+      {selectedCourse && <div className="course-modal-backdrop" role="presentation" onClick={() => setSelectedCourse(null)}><div className={`course-modal ${selectedCourse.sourceArticle ? 'course-article-modal' : ''}`} role="dialog" aria-modal="true" aria-labelledby="course-modal-title" onClick={(event) => event.stopPropagation()}><button className="modal-close" onClick={() => setSelectedCourse(null)} aria-label="Đóng"><X size={20} /></button><span className={`course-status ${selectedCourse.statusTone || 'open'}`}>{selectedCourse.status}</span><span className="modal-category">{selectedCourse.category || 'Khóa học'} · {selectedCourse.eyebrow || 'Thông tin khóa học'}</span><h2 id="course-modal-title">{selectedCourse.title}</h2><p>{selectedCourse.description}</p><div className="modal-facts"><span><CalendarDays size={17} /> {selectedCourse.displayDate}</span><span><Clock3 size={17} /> {selectedCourse.format}</span></div>{selectedCourse.sourceArticle ? <><ArticleBody content={selectedCourse.content} /><p className="course-modal-author">{selectedCourse.author}</p></> : <><h3>Nội dung chính</h3><ul>{selectedCourse.lessons.map((lesson) => <li key={lesson}><Check size={16} /> {lesson}</li>)}</ul></>}<a href="tel:0385497085" className="course-dark-btn modal-cta">Liên hệ đăng ký <ArrowRight size={16} /></a></div></div>}
     </div>
   );
 }
