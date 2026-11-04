@@ -49,12 +49,14 @@ export default function ChatWidget() {
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.message || 'Không tải được tin nhắn.');
-      setMessages(result.data || []);
+      const chatMessages = result.data || [];
+      const suppressWelcome = !isAdmin && (user?.account_type === 'collaborator' || user?.account_type === 'admin' || user?.role === 'manager');
+      setMessages(suppressWelcome ? chatMessages.filter((item) => !item.message?.startsWith('🌸 TỬ VI HỒNG ÂN')) : chatMessages);
       setError('');
     } catch (loadError) {
       setError(loadError.message || 'Không tải được tin nhắn.');
     }
-  }, [isAdmin, selectedConversation]);
+  }, [isAdmin, selectedConversation, user]);
 
   useEffect(() => {
     const syncUser = () => setUser(readSavedUser());
@@ -187,7 +189,7 @@ export default function ChatWidget() {
                 <div className="site-chat-messages" ref={listRef} aria-live="polite">
                   {messages.length === 0 && <p className="site-chat-empty">{isAdmin ? 'Chưa có tin nhắn trong hội thoại này.' : 'Hãy gửi lời nhắn. Quản trị viên sẽ phản hồi tại đây.'}</p>}
                   {messages.map((item) => (
-                    <article className={`site-chat-message ${item.sender_role === (isAdmin ? 'manager' : 'customer') ? 'is-customer' : 'is-admin'}`} key={item.id}>
+                    <article className={`site-chat-message ${item.sender_role === (isAdmin ? 'manager' : 'customer') ? 'is-customer' : 'is-admin'} ${item.message?.startsWith('🌸 TỬ VI HỒNG ÂN') ? 'is-welcome' : ''}`} key={item.id}>
                       <span>{item.sender_role === 'manager' ? 'Quản trị viên' : isAdmin ? item.sender_name : 'Bạn'}</span>
                       <p>{item.message}</p>
                       <time>{new Date(item.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</time>

@@ -347,10 +347,54 @@ async function resolveChatCustomer(req, res) {
   }
 }
 
+const CHAT_WELCOME_MESSAGE = `🌸 TỬ VI HỒNG ÂN xin chào bạn!
+
+Cảm ơn bạn đã tin tưởng và liên hệ. Hồng Ân đã nhận được tin nhắn và sẽ phản hồi bạn sớm nhất có thể.
+
+📩 Để đặt lịch xem Tử Vi, mời bạn để lại:
+• Họ tên, giới tính.
+• Ngày, tháng, năm sinh (ghi rõ âm lịch hoặc dương lịch).
+• Giờ sinh.
+• Số điện thoại/Zalo liên hệ.
+• Nội dung muốn xem và thời gian thuận tiện.
+
+🌐 Hoặc bạn có thể lập lá số miễn phí tại tuvihongan.com, rồi gửi ảnh lá số kèm số điện thoại và nội dung cần tư vấn.
+
+🌿 Phí luận giải trực tiếp với Thầy là 500.000đ, bao gồm luận giải chi tiết 12 cung và không giới hạn câu hỏi trong buổi xem.
+
+Để đặt lịch, bạn vui lòng chuyển khoản theo thông tin:
+• Ngân hàng: BIDV
+• Số tài khoản: 8857159999
+• Chủ tài khoản: TRAN NGOC DIEP
+• Nội dung: Họ tên + Số điện thoại
+
+Bạn có thể quét mã QR đính kèm để chuyển khoản. Sau khi chuyển, vui lòng gửi ảnh giao dịch để Hồng Ân kiểm tra, xác nhận và sắp xếp lịch xem nhé!
+
+Cảm ơn bạn đã kiên nhẫn chờ đợi! 🙏`;
+
+async function ensureChatWelcomeMessage(customerId) {
+  const [existing] = await pool.execute(
+    'SELECT id FROM customer_chat_messages WHERE customer_id = ? LIMIT 1',
+    [customerId],
+  );
+  if (existing.length) return;
+  await pool.execute(
+    "INSERT INTO customer_chat_messages (customer_id, sender_role, sender_name, message, read_by_customer, read_by_manager) VALUES (?, 'manager', 'Hồng Ân', ?, 0, 0)",
+    [customerId, CHAT_WELCOME_MESSAGE],
+  );
+}
+
+function shouldShowChatWelcome(user) {
+  return user?.account_type !== 'collaborator'
+    && user?.account_type !== 'admin'
+    && user?.role !== 'manager';
+}
+
 app.get('/api/chat/messages', async (req, res) => {
   const customer = await resolveChatCustomer(req, res);
   if (!customer) return;
   try {
+    if (shouldShowChatWelcome(customer.user)) await ensureChatWelcomeMessage(customer.customerId);
     await pool.execute(
       "UPDATE customer_chat_messages SET read_by_customer = 1 WHERE customer_id = ? AND sender_role = 'manager'",
       [customer.customerId],
@@ -374,6 +418,7 @@ app.post('/api/chat/messages', async (req, res) => {
     return res.status(400).json({ status: 'error', message: 'Tin nhắn cần có từ 1 đến 2000 ký tự.' });
   }
   try {
+    if (shouldShowChatWelcome(customer.user)) await ensureChatWelcomeMessage(customer.customerId);
     const [result] = await pool.execute(
       "INSERT INTO customer_chat_messages (customer_id, sender_role, sender_name, message) VALUES (?, 'customer', ?, ?)",
       [customer.customerId, String(customer.user.name || customer.user.email).slice(0, 120), message],

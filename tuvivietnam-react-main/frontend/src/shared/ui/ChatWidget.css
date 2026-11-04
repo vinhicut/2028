@@ -25,6 +25,8 @@
 .site-chat-inbox b { display: grid; min-width: 20px; height: 20px; place-items: center; border-radius: 50%; background: #8f1d1d; color: white; font-size: 10px; }
 .site-chat-back { min-height: 38px; padding: 8px 12px; border: 0; border-bottom: 1px solid #eee7dc; background: #fff; color: #7f1d1d; text-align: left; font-size: 12px; font-weight: 700; cursor: pointer; }
 .site-chat-message { display: grid; gap: 4px; width: fit-content; max-width: 84%; padding: 9px 11px; border-radius: 12px; box-shadow: 0 1px 3px rgba(40, 30, 20, .07); }
+.site-chat-message.is-welcome { width: min(100%, 330px); max-width: 100%; align-self: stretch; padding: 13px 14px; text-align: left; }
+.site-chat-message.is-welcome p { line-height: 1.55; }
 .site-chat-message.is-customer { align-self: flex-end; border-bottom-right-radius: 4px; background: #8f1d1d; color: #fff; }
 .site-chat-message.is-admin { align-self: flex-start; border: 1px solid #eee3d2; border-bottom-left-radius: 4px; background: white; color: #292524; }
 .site-chat-message > span { font-size: 10px; font-weight: 750; opacity: .76; }
