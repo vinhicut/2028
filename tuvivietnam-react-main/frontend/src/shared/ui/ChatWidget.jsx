@@ -112,8 +112,13 @@ export default function ChatWidget() {
   };
 
   useEffect(() => {
-    if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
-  }, [messages, open]);
+    if (!listRef.current) return;
+    const welcomeOnly = !isAdmin
+      && messages.length > 0
+      && messages[0].message?.startsWith('🌸 TỬ VI HỒNG ÂN')
+      && !messages.some((item) => item.sender_role === 'customer');
+    listRef.current.scrollTop = welcomeOnly ? 0 : listRef.current.scrollHeight;
+  }, [messages, open, isAdmin]);
 
   const sendMessage = async (event) => {
     event.preventDefault();
