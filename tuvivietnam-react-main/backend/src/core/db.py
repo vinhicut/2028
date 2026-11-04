@@ -6,6 +6,8 @@ from typing import Optional, Dict, Any, List
 from core.config import DB_PATH, SUPER_ADMIN_EMAILS
 import core.firebase_db as firebase_db
 
+ONLINE_WINDOW_SECONDS = 120
+
 # Flag to indicate if Firebase is active
 FIREBASE_ACTIVE = False
 
@@ -39,7 +41,8 @@ def init_db():
                 referral_code TEXT,
                 referred_by_user_id INTEGER REFERENCES users(id),
                 created_at TEXT NOT NULL,
-                last_login_at TEXT NOT NULL
+                last_login_at TEXT NOT NULL,
+                is_busy INTEGER NOT NULL DEFAULT 0
             );
             """)
 
@@ -52,6 +55,8 @@ def init_db():
                 conn.execute("ALTER TABLE users ADD COLUMN referral_code TEXT")
             if 'referred_by_user_id' not in user_columns:
                 conn.execute("ALTER TABLE users ADD COLUMN referred_by_user_id INTEGER REFERENCES users(id) DEFAULT NULL")
+            if 'is_busy' not in user_columns:
+                conn.execute("ALTER TABLE users ADD COLUMN is_busy INTEGER NOT NULL DEFAULT 0")
             conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code) WHERE referral_code IS NOT NULL")
             admin_placeholders = ','.join('?' for _ in SUPER_ADMIN_EMAILS) or "''"
             conn.execute(f"UPDATE users SET account_type = 'admin', admin_level = CASE WHEN lower(email) IN ({admin_placeholders}) THEN 1 ELSE 2 END WHERE role = 'manager' AND account_type = 'user'", SUPER_ADMIN_EMAILS)
@@ -64,9 +69,14 @@ def init_db():
                 user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 token TEXT UNIQUE NOT NULL,
                 expires_at TEXT NOT NULL,
-                created_at TEXT NOT NULL
+                created_at TEXT NOT NULL,
+                last_activity_at TEXT NOT NULL
             );
             """)
+            session_columns = {row['name'] for row in conn.execute("PRAGMA table_info(sessions)").fetchall()}
+            if 'last_activity_at' not in session_columns:
+                conn.execute("ALTER TABLE sessions ADD COLUMN last_activity_at TEXT")
+                conn.execute("UPDATE sessions SET last_activity_at = created_at WHERE last_activity_at IS NULL")
 
             # 3. Bảng lá số người dùng (Bảng có cấu trúc cố định)
             conn.execute("""
@@ -173,6 +183,48 @@ def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
     finally:
         conn.close()
 
+def set_user_busy(user_id: Any, is_busy: bool) -> Optional[Dict[str, Any]]:
+    if FIREBASE_ACTIVE:
+        return firebase_db.set_user_busy(str(user_id), is_busy)
+    conn = get_connection()
+    try:
+        with conn:
+            cur = conn.cursor()
+            cur.execute("UPDATE users SET is_busy = ? WHERE id = ?", (1 if is_busy else 0, user_id))
+            if not cur.rowcount:
+                return None
+            cur.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+            row = cur.fetchone()
+            return dict(row) if row else None
+    finally:
+        conn.close()
+
+def get_public_admin_presence(emails: List[str]) -> Dict[str, Dict[str, bool]]:
+    """Return only presence flags for the configured public consultation accounts."""
+    clean_emails = [str(email).strip().lower() for email in emails if str(email).strip()]
+    if FIREBASE_ACTIVE:
+        return firebase_db.get_public_admin_presence(clean_emails)
+    if not clean_emails:
+        return {}
+    now_str = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    placeholders = ','.join('?' for _ in clean_emails)
+    conn = get_connection()
+    try:
+        rows = conn.execute(f"""
+            SELECT lower(u.email) AS email, COALESCE(u.is_busy, 0) AS is_busy,
+                   EXISTS (
+                       SELECT 1 FROM sessions s
+                       WHERE s.user_id = u.id
+                         AND s.expires_at > ?
+                         AND s.last_activity_at > datetime('now', '-120 seconds')
+                   ) AS is_online
+            FROM users u
+            WHERE lower(u.email) IN ({placeholders})
+        """, [now_str, *clean_emails]).fetchall()
+        return {row['email']: {'is_online': bool(row['is_online']), 'is_busy': bool(row['is_busy'])} for row in rows}
+    finally:
+        conn.close()
+
 # ----------------- Session Queries -----------------
 
 def create_session(user_id: int, token: str, days: int = 30) -> Dict[str, Any]:
@@ -188,9 +240,9 @@ def create_session(user_id: int, token: str, days: int = 30) -> Dict[str, Any]:
         with conn:
             cur = conn.cursor()
             cur.execute("""
-                INSERT INTO sessions (user_id, token, expires_at, created_at)
-                VALUES (?, ?, ?, ?)
-            """, (user_id, token, exp_str, now_str))
+                INSERT INTO sessions (user_id, token, expires_at, created_at, last_activity_at)
+                VALUES (?, ?, ?, ?, ?)
+            """, (user_id, token, exp_str, now_str, now_str))
             return {"user_id": user_id, "token": token, "expires_at": exp_str}
     finally:
         conn.close()
@@ -203,6 +255,7 @@ def get_user_by_token(token: str) -> Optional[Dict[str, Any]]:
     conn = get_connection()
     try:
         cur = conn.cursor()
+        cur.execute("UPDATE sessions SET last_activity_at = ? WHERE token = ? AND expires_at > ?", (now_str, token, now_str))
         cur.execute("""
             SELECT u.*
             FROM sessions s
@@ -352,7 +405,14 @@ def admin_get_users(limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
         cur.execute("""
             SELECT u.id, u.google_id, u.email, u.name, u.avatar, u.role, u.account_type, u.admin_level,
                    u.referral_code, u.referred_by_user_id, r.name AS referrer_name, r.email AS referrer_email,
-                   u.created_at, u.last_login_at, COUNT(DISTINCT c.id) AS total_charts,
+                   u.created_at, u.last_login_at, u.is_busy,
+                   CASE WHEN EXISTS (
+                       SELECT 1 FROM sessions active_session
+                       WHERE active_session.user_id = u.id
+                         AND active_session.expires_at > datetime('now')
+                         AND active_session.last_activity_at > datetime('now', '-120 seconds')
+                   ) THEN 1 ELSE 0 END AS is_online,
+                   COUNT(DISTINCT c.id) AS total_charts,
                    COUNT(DISTINCT referred.id) AS referred_users
             FROM users u
             LEFT JOIN user_charts c ON u.id = c.user_id
@@ -374,7 +434,13 @@ def admin_get_user_detail(user_id: str) -> Optional[Dict[str, Any]]:
     try:
         cur = conn.cursor()
         cur.execute("""SELECT u.id, u.email, u.name, u.avatar, u.account_type, u.admin_level,
-                          u.referral_code, u.referred_by_user_id, u.created_at, u.last_login_at,
+                          u.referral_code, u.referred_by_user_id, u.created_at, u.last_login_at, u.is_busy,
+                          CASE WHEN EXISTS (
+                              SELECT 1 FROM sessions active_session
+                              WHERE active_session.user_id = u.id
+                                AND active_session.expires_at > datetime('now')
+                                AND active_session.last_activity_at > datetime('now', '-120 seconds')
+                          ) THEN 1 ELSE 0 END AS is_online,
                           r.name AS referrer_name, r.email AS referrer_email, r.referral_code AS referrer_code,
                           (SELECT COUNT(*) FROM users referred WHERE referred.referred_by_user_id = u.id) AS referred_users
                      FROM users u LEFT JOIN users r ON r.id = u.referred_by_user_id WHERE u.id = ?""", (user_id,))

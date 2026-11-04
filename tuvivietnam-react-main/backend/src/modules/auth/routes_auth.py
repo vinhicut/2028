@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, g
 from core.node_api_proxy import proxy_customer_api
-from core.db import admin_get_user_detail
+from core.db import admin_get_user_detail, get_public_admin_presence, set_user_busy
 from modules.auth.auth import (
     verify_google_id_token,
     issue_user_session,
@@ -10,6 +10,15 @@ from modules.auth.auth import (
 )
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
+
+PUBLIC_CONSULTATION_EMAILS = (
+    "kingcobraatnight@gmail.com",
+    "tuyetnt511@gmail.com",
+)
+
+@auth_bp.route("/public/admin-presence", methods=["GET"])
+def public_admin_presence():
+    return jsonify({"status": "success", "data": get_public_admin_presence(PUBLIC_CONSULTATION_EMAILS)}), 200
 
 @auth_bp.route("/customer-accounts/sync", methods=["POST"])
 @login_required
@@ -61,6 +70,20 @@ def auth_profile_details():
     if not profile:
         return jsonify({"status": "error", "message": "Không tìm thấy hồ sơ người dùng."}), 404
     return jsonify({"status": "success", "data": profile}), 200
+
+@auth_bp.route("/profile/busy", methods=["PUT"])
+@login_required
+def update_profile_busy():
+    current = g.current_user
+    if current.get('account_type') != 'admin' and current.get('role') != 'manager':
+        return jsonify({"status": "error", "message": "Chỉ tài khoản Admin mới có trạng thái bận."}), 403
+    data = request.get_json(silent=True) or {}
+    if not isinstance(data.get('is_busy'), bool):
+        return jsonify({"status": "error", "message": "Trạng thái bận không hợp lệ."}), 400
+    user = set_user_busy(current['id'], data['is_busy'])
+    if not user:
+        return jsonify({"status": "error", "message": "Không tìm thấy tài khoản."}), 404
+    return jsonify({"status": "success", "data": {"is_busy": bool(user.get('is_busy'))}}), 200
 
 @auth_bp.route("/profile/chart-logs", methods=["GET"])
 @login_required

@@ -56,7 +56,7 @@
                         <div class="tb-header-sub-highlight">Luận giải đầy đủ 199k tại</div>
                         <div class="tb-header-domain">www.tuvihongan.com</div>
                         <div class="tb-header-sub">Đặt lịch luận giải riêng với thầy qua Zalo</div>
-                        <div class="tb-header-phone">0924.616.199</div>
+                        <div class="tb-header-phone" id="tb-header-phone">0924.616.199</div>
                     </div>
 
                     <!-- KHUNG THÔNG TIN THIÊN BÀN -->
@@ -259,6 +259,13 @@
     <script src="js/ui-controller.js?v=2409"></script>
     <script src="js/export-engine.js?v=2412"></script>
     <script src="js/app.js?v=2412"></script>
+    <script>
+        window.addEventListener('message', function (event) {
+            if (event.origin !== window.location.origin || event.data?.type !== 'TUVI_UPDATE_CONTACT_PHONE') return;
+            var phone = String(event.data.phone || '').trim();
+            if (phone) document.querySelectorAll('.tb-header-phone').forEach(function (node) { node.textContent = phone; });
+        });
+    </script>
 </body>
 
 </html>

@@ -99,6 +99,46 @@
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
+.auth-user-presence {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #9b3028;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.auth-user-presence i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #b9afa4;
+}
+
+.auth-user-presence.online { color: #2f7d46; }
+.auth-user-presence.online i { background: #36a457; box-shadow: 0 0 0 3px rgba(54, 164, 87, .14); }
+.auth-user-presence.online.busy { color: #c0392b; }
+.auth-user-presence.online.busy i { background: #e04435; box-shadow: 0 0 0 3px rgba(224, 68, 53, .14); }
+
+.auth-presence-actions {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.auth-presence-actions button {
+  border: 1px solid #e5d7c5;
+  border-radius: 999px;
+  padding: 7px 13px;
+  background: #fffaf2;
+  color: #8a5a18;
+  font: 600 12px 'Be Vietnam Pro', Arial, sans-serif;
+  cursor: pointer;
+}
+
+.auth-presence-actions button.selected-online { border-color: #9ed2aa; background: #eefaf0; color: #2f7d46; }
+.auth-presence-actions button.selected-busy { border-color: #f0b2a8; background: #fff0ee; color: #a52f26; }
+.auth-presence-actions button:disabled { opacity: .6; cursor: wait; }
+
 .auth-user-avatar-lg.default {
   display: flex;
   align-items: center;

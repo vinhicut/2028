@@ -10,6 +10,7 @@ from core.config import FIREBASE_PROJECT_ID, FIREBASE_CREDENTIALS_PATH, SUPER_AD
 
 # Global Firestore client
 db = None
+ONLINE_WINDOW_SECONDS = 120
 
 def init_firebase() -> bool:
     global db
@@ -75,7 +76,8 @@ def upsert_user(google_id: str, email: str, name: str, avatar: Optional[str], ro
             'account_type': account_type,
             'admin_level': admin_level,
             'referred_by_user_id': referred_by_user_id,
-            'last_login_at': now_str
+            'last_login_at': now_str,
+            'is_busy': False
         }
         users_ref.document(user_id).update(update_data)
         user_data.update(update_data)
@@ -115,6 +117,32 @@ def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
         return data
     return None
 
+def set_user_busy(user_id: str, is_busy: bool) -> Optional[Dict[str, Any]]:
+    ref = db.collection('users').document(str(user_id))
+    doc = ref.get()
+    if not doc.exists:
+        return None
+    ref.update({'is_busy': bool(is_busy)})
+    data = doc.to_dict()
+    data['is_busy'] = bool(is_busy)
+    data['id'] = doc.id
+    return data
+
+def get_public_admin_presence(emails: List[str]) -> Dict[str, Dict[str, bool]]:
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    online_cutoff = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=ONLINE_WINDOW_SECONDS)).isoformat()
+    active_sessions = db.collection('sessions').where(filter=firestore.FieldFilter('last_activity_at', '>=', online_cutoff)).get()
+    online_user_ids = {str(session.to_dict().get('user_id')) for session in active_sessions if session.to_dict().get('expires_at', '') > now_iso}
+    result = {}
+    for email in emails:
+        query = db.collection('users').where(filter=firestore.FieldFilter('email', '==', email.lower())).limit(1).get()
+        if not query:
+            continue
+        doc = query[0]
+        data = doc.to_dict()
+        result[email.lower()] = {'is_online': doc.id in online_user_ids, 'is_busy': bool(data.get('is_busy', False))}
+    return result
+
 # ----------------- Session Queries -----------------
 
 def create_session(user_id: str, token: str, days: int = 30) -> Dict[str, Any]:
@@ -126,7 +154,8 @@ def create_session(user_id: str, token: str, days: int = 30) -> Dict[str, Any]:
         'user_id': user_id,
         'token': token,
         'expires_at': exp_str,
-        'created_at': now_str
+        'created_at': now_str,
+        'last_activity_at': now_str
     }
     db.collection('sessions').document(token).set(session_data)
     return session_data
@@ -139,6 +168,7 @@ def get_user_by_token(token: str) -> Optional[Dict[str, Any]]:
         session_data = doc.to_dict()
         if session_data.get('expires_at') > now_str:
             user_id = session_data.get('user_id')
+            db.collection('sessions').document(token).update({'last_activity_at': now_str})
             user_doc = db.collection('users').document(str(user_id)).get()
             if user_doc.exists:
                 user_data = user_doc.to_dict()
@@ -263,6 +293,10 @@ def get_user_charts_list(user_id: str, limit: int = 20, offset: int = 0) -> List
 def admin_get_users(limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
     query = db.collection('users').order_by('created_at', direction=firestore.Query.DESCENDING).limit(limit).offset(offset).get()
     all_users = db.collection('users').get()
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    online_cutoff = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=ONLINE_WINDOW_SECONDS)).isoformat()
+    active_sessions = db.collection('sessions').where(filter=firestore.FieldFilter('last_activity_at', '>=', online_cutoff)).get()
+    online_user_ids = {str(session.to_dict().get('user_id')) for session in active_sessions if session.to_dict().get('expires_at', '') > now_iso}
     users_by_id = {doc.id: doc.to_dict() for doc in all_users}
     referral_counts = {}
     for user in users_by_id.values():
@@ -275,12 +309,14 @@ def admin_get_users(limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
         data['id'] = doc.id
         data.setdefault('account_type', 'admin' if data.get('role') == 'manager' else 'user')
         data.setdefault('admin_level', 2 if data.get('role') == 'manager' else 0)
+        data.setdefault('is_busy', False)
         if str(data.get('email', '')).lower() in SUPER_ADMIN_EMAILS:
             data.update({'role': 'manager', 'account_type': 'admin', 'admin_level': 1})
         referrer = users_by_id.get(str(data.get('referred_by_user_id')))
         data['referrer_name'] = referrer.get('name') if referrer else None
         data['referrer_email'] = referrer.get('email') if referrer else None
         data['referred_users'] = referral_counts.get(doc.id, 0)
+        data['is_online'] = doc.id in online_user_ids
         results.append(data)
     return results
 
@@ -293,6 +329,7 @@ def admin_get_user_detail(user_id: str) -> Optional[Dict[str, Any]]:
     user['id'] = user_doc.id
     user.setdefault('account_type', 'admin' if user.get('role') == 'manager' else 'user')
     user.setdefault('admin_level', 2 if user.get('role') == 'manager' else 0)
+    user.setdefault('is_busy', False)
     if str(user.get('email', '')).lower() in SUPER_ADMIN_EMAILS:
         user.update({'role': 'manager', 'account_type': 'admin', 'admin_level': 1})
     referrer_id = user.get('referred_by_user_id')
@@ -304,6 +341,10 @@ def admin_get_user_detail(user_id: str) -> Optional[Dict[str, Any]]:
             user['referrer_email'] = referrer.get('email')
             user['referrer_code'] = referrer.get('referral_code')
     user['referred_users'] = len(db.collection('users').where(filter=firestore.FieldFilter('referred_by_user_id', '==', str(user_id))).get())
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    online_cutoff = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=ONLINE_WINDOW_SECONDS)).isoformat()
+    active_sessions = db.collection('sessions').where(filter=firestore.FieldFilter('last_activity_at', '>=', online_cutoff)).get()
+    user['is_online'] = any(str(session.to_dict().get('user_id')) == str(user_id) and session.to_dict().get('expires_at', '') > now_iso for session in active_sessions)
     charts = (db.collection('user_charts')
               .where(filter=firestore.FieldFilter('user_id', '==', str(user_id)))
               .order_by('updated_at', direction=firestore.Query.DESCENDING)

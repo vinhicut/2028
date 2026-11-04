@@ -88,6 +88,37 @@ function LaSoTuVi() {
   const [frameHeight, setFrameHeight] = useState(1040);
   const [activeService, setActiveService] = useState(null);
   const [logStatus, setLogStatus] = useState('');
+  const [consultationPhone, setConsultationPhone] = useState('0924.616.199');
+
+  useEffect(() => {
+    let active = true;
+    const refreshConsultationPhone = async () => {
+      try {
+        const response = await fetch('/api/auth/public/admin-presence');
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) return;
+        const first = result.data?.['kingcobraatnight@gmail.com'] || {};
+        const second = result.data?.['tuyetnt511@gmail.com'] || {};
+        const firstAvailable = Boolean(first.is_online && !first.is_busy);
+        const secondAvailable = Boolean(second.is_online && !second.is_busy);
+        // A busy account is not selected for consultation. Prefer 0924 when
+        // both are available or when only the first account is available.
+        const nextPhone = firstAvailable
+          ? '0924.616.199'
+          : secondAvailable ? '0385.497.085' : '0924.616.199';
+        if (active) setConsultationPhone(nextPhone);
+      } catch {
+        /* Keep the default consultation number when presence is unavailable. */
+      }
+    };
+    refreshConsultationPhone();
+    const interval = window.setInterval(refreshConsultationPhone, 60_000);
+    return () => { active = false; window.clearInterval(interval); };
+  }, []);
+
+  useEffect(() => {
+    iframeRef.current?.contentWindow?.postMessage({ type: 'TUVI_UPDATE_CONTACT_PHONE', phone: consultationPhone }, window.location.origin);
+  }, [consultationPhone]);
 
   const requestHeight = useCallback(() => {
     try {
@@ -229,6 +260,7 @@ function LaSoTuVi() {
           frameBorder="0"
           onLoad={() => {
             requestHeight();
+            iframeRef.current?.contentWindow?.postMessage({ type: 'TUVI_UPDATE_CONTACT_PHONE', phone: consultationPhone }, window.location.origin);
             setTimeout(requestHeight, 200);
             setTimeout(requestHeight, 600);
           }}

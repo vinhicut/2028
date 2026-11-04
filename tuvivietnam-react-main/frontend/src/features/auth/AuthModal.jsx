@@ -12,6 +12,7 @@ function AuthModal({ open, onClose, user, onAuthSuccess, onLogout }) {
   const [profileDetails, setProfileDetails] = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState('');
+  const [busySaving, setBusySaving] = useState(false);
   const googleBtnRef = useRef(null);
 
   useEffect(() => {
@@ -179,6 +180,27 @@ function AuthModal({ open, onClose, user, onAuthSuccess, onLogout }) {
     onClose?.();
   };
 
+  const isAdminProfile = profileDetails?.account_type === 'admin' || profileDetails?.role === 'manager' || user?.account_type === 'admin' || user?.role === 'manager';
+  const setBusyStatus = async (nextBusy) => {
+    if (!isAdminProfile || busySaving || !profileDetails) return;
+    setBusySaving(true);
+    setProfileError('');
+    try {
+      const response = await fetch(`${API}/api/auth/profile/busy`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${localStorage.getItem('tuvi_token') || ''}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_busy: nextBusy }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.message || 'Không thể cập nhật trạng thái bận.');
+      setProfileDetails((current) => current ? { ...current, is_busy: result.data?.is_busy ?? nextBusy } : current);
+    } catch (statusError) {
+      setProfileError(statusError.message || 'Không thể cập nhật trạng thái bận.');
+    } finally {
+      setBusySaving(false);
+    }
+  };
+
   const referredAccounts = profileDetails?.referred_accounts || [];
   const referredServiceSummary = referredAccounts.reduce((summary, account) => {
     (account.services || []).forEach((service) => {
@@ -206,6 +228,8 @@ function AuthModal({ open, onClose, user, onAuthSuccess, onLogout }) {
               />
               <div className="auth-user-name">{user.name}</div>
               <div className="auth-user-email">{user.email}</div>
+              {profileDetails && <div className={`auth-user-presence ${profileDetails.is_online !== false ? 'online' : ''} ${profileDetails.is_busy ? 'busy' : ''}`}><i aria-hidden="true" />{profileDetails.is_online !== false ? 'Đang online' : 'Ngoại tuyến'}</div>}
+              {profileDetails && isAdminProfile && <div className="auth-presence-actions" role="group" aria-label="Trạng thái Admin"><button type="button" className={!profileDetails.is_busy ? 'selected-online' : ''} onClick={() => setBusyStatus(false)} disabled={busySaving}>Online</button><button type="button" className={profileDetails.is_busy ? 'selected-busy' : ''} onClick={() => setBusyStatus(true)} disabled={busySaving}>Đang bận</button></div>}
               {profileLoading && <div className="auth-profile-state">Đang tải thông tin hồ sơ…</div>}
               {profileError && <div className="auth-profile-state error" role="alert">{profileError}</div>}
               {profileDetails && <div className="auth-profile-details">

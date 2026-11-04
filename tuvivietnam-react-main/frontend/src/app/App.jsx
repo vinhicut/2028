@@ -30,6 +30,17 @@ function App() {
   const { pathname } = useLocation();
 
   useEffect(() => {
+    const sendActivity = () => {
+      const token = localStorage.getItem('tuvi_token');
+      if (!token) return;
+      fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+    };
+    sendActivity();
+    const interval = window.setInterval(sendActivity, 60_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
     const referralCode = new URLSearchParams(window.location.search).get('ref');
     if (referralCode) localStorage.setItem('tuvi_referral_code', referralCode.trim().toUpperCase());
   }, []);
