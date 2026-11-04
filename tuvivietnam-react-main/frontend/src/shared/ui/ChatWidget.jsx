@@ -22,6 +22,7 @@ export default function ChatWidget() {
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const listRef = useRef(null);
+  const stickToBottomRef = useRef(true);
   const isAdmin = user?.role === 'manager' || user?.account_type === 'admin';
 
   const loadConversations = useCallback(async () => {
@@ -112,12 +113,29 @@ export default function ChatWidget() {
   };
 
   useEffect(() => {
+    const list = listRef.current;
+    if (!list) return undefined;
+    const updateScrollMode = () => {
+      const distanceFromBottom = list.scrollHeight - list.scrollTop - list.clientHeight;
+      stickToBottomRef.current = distanceFromBottom < 48;
+    };
+    list.addEventListener('scroll', updateScrollMode, { passive: true });
+    updateScrollMode();
+    return () => list.removeEventListener('scroll', updateScrollMode);
+  }, [open, isAdmin, selectedConversation]);
+
+  useEffect(() => {
     if (!listRef.current) return;
     const welcomeOnly = !isAdmin
       && messages.length > 0
       && messages[0].message?.startsWith('🌸 TỬ VI HỒNG ÂN')
       && !messages.some((item) => item.sender_role === 'customer');
-    listRef.current.scrollTop = welcomeOnly ? 0 : listRef.current.scrollHeight;
+    if (welcomeOnly) {
+      listRef.current.scrollTop = 0;
+      stickToBottomRef.current = false;
+    } else if (stickToBottomRef.current) {
+      listRef.current.scrollTop = listRef.current.scrollHeight;
+    }
   }, [messages, open, isAdmin]);
 
   const sendMessage = async (event) => {
