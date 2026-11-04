@@ -1,4 +1,4 @@
-# Module Phong Thủy Bát Trạch Minh Kính (React JSX / JavaScript)
+﻿# Module Phong Thủy Bát Trạch Minh Kính (React JSX / JavaScript)
 
 Module tra cứu phong thủy nhà ở Bát Trạch, cung mệnh gia chủ, đối chiếu tuổi vợ chồng và kích hoạt đào hoa cho nam gia chủ độc thân. Được viết hoàn toàn bằng **React JSX (.jsx) và JavaScript (.js)** thuần túy, không chứa cú pháp TypeScript, sẵn sàng để copy và tích hợp vào bất kỳ website React (Vite, Next.js, Create React App, Remix...) nào.
 
@@ -22,10 +22,10 @@ Yêu cầu môi trường:
 
 ## 2. Cấu trúc thư mục module
 
-Chỉ cần sao chép toàn bộ thư mục `phongthuy` vào thư mục `components` của dự án bạn:
+Chỉ cần sao chép toàn bộ thư mục `phong-thuy` vào thư mục `features` của dự án bạn:
 
 ```text
-src/components/phongthuy/
+src/features/phong-thuy/
 ├── index.js                     # File export toàn bộ module & PhongThuyWidget
 ├── PhongThuyWidget.jsx          # Component chính tích hợp toàn bộ tính năng
 ├── Header.jsx                   # Thanh tiêu đề & thanh điều hướng tab
@@ -49,8 +49,8 @@ src/components/phongthuy/
 
 ```jsx
 import React from 'react';
-import PhongThuyWidget from './components/phongthuy';
-// hoặc: import { PhongThuyWidget } from './components/phongthuy';
+import PhongThuyWidget from './features/phong-thuy';
+// hoặc: import { PhongThuyWidget } from './features/phong-thuy';
 
 export default function TrangPhongThuy() {
   return (
@@ -74,7 +74,7 @@ import {
   getYearDetails,
   getDirectionsEvaluation,
   evaluateSpouseCompatibility,
-} from './components/phongthuy';
+} from './features/phong-thuy';
 
 // 1. Lấy thông tin bản mệnh năm sinh
 const giaChu = getYearDetails(1990);

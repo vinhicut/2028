@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ArticleBody from '../../shared/ui/ArticleBody';
-import '../articles/PhatPhapPage.css';
+import '../../features/phat-phap/PhatPhapPage.css';
 
 function formatDate(value) {
   return value ? new Date(value).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';

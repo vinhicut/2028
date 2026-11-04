@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { qimenArticles } from './qimenArticles';
 import { qimenOriginalDetails } from './qimenOriginalDetails';
 import './QimenArticles.css';
-import '../articles/CategoryPage.css';
+import '../bai-viet/CategoryPage.css';
 
 const articlePath = (slug) => `/ky-mon-don-giap/${slug}`;
 

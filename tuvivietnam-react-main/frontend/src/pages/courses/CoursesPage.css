@@ -11,6 +11,17 @@
 
 /* Full-width poster mode for legibility: details follow below the artwork. */
 .courses-page{max-width:1280px}
+
+/* Use a Vietnamese-capable fallback stack so accented glyphs render consistently. */
+.courses-hero h1,
+.featured-course h2,
+.catalog-heading h2,
+.update-banner h2,
+.course-card h3,
+.course-modal h2,
+.hero-symbol {
+  font-family: Cambria, "Segoe UI", Georgia, "Times New Roman", serif;
+}
 .featured-course{display:block}
 .featured-course-image{width:100%;height:auto;aspect-ratio:3 / 2}
 .featured-course-image img{width:100%;height:100%;object-fit:contain}

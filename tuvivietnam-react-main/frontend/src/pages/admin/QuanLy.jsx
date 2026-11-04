@@ -172,16 +172,16 @@ export default function QuanLy() {
     };
   }, [selectedLog]);
 
-  if (!loading && authorized && adminLevel !== 1) {
-    return <main className="customer-admin-page"><header className="customer-admin-heading"><div><span className="customer-admin-eyebrow"><ShieldCheck size={15} /> KHU VỰC QUẢN TRỊ</span><h1>Quản trị nội dung và người dùng</h1><p>Admin {adminLevel} có quyền quản lý bài viết và tài khoản người dùng.</p></div><div className="customer-admin-heading-actions"><Link className="customer-admin-articles-link" to="/quan-ly/nguoi-dung">Quản lý người dùng</Link><Link className="customer-admin-articles-link" to="/quan-ly/bai-viet">Quản lý bài viết</Link><Link className="customer-admin-articles-link" to="/quan-ly/khoa-hoc">Viết bài khóa học</Link></div></header><AdminChatPanel /></main>;
-  }
-
   const filteredLogs = useMemo(() => {
     const query = search.trim().toLocaleLowerCase('vi');
     if (!query) return logs;
     return logs.filter((log) => [log.customer_name, log.customer_email, log.chart_code]
       .some((value) => String(value || '').toLocaleLowerCase('vi').includes(query)));
   }, [logs, search]);
+
+  if (!loading && authorized && adminLevel !== 1) {
+    return <main className="customer-admin-page"><header className="customer-admin-heading"><div><span className="customer-admin-eyebrow"><ShieldCheck size={15} /> KHU VỰC QUẢN TRỊ</span><h1>Quản trị nội dung và người dùng</h1><p>Admin {adminLevel} có quyền quản lý bài viết và tài khoản người dùng.</p></div><div className="customer-admin-heading-actions"><Link className="customer-admin-articles-link" to="/quan-ly/nguoi-dung">Quản lý người dùng</Link><Link className="customer-admin-articles-link" to="/quan-ly/bai-viet">Quản lý bài viết</Link><Link className="customer-admin-articles-link" to="/quan-ly/khoa-hoc">Viết bài khóa học</Link></div></header><AdminChatPanel /></main>;
+  }
 
   return (
     <div className="customer-admin-page">

@@ -16,7 +16,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import Navbar from '../shared/ui/Navbar';
-import { qimenArticles } from './qimen/qimenArticles';
+import { qimenArticles } from '../features/ky-mon/qimenArticles';
 
 export default function Home() {
   const navigate = useNavigate();
