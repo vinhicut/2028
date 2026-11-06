@@ -68,7 +68,7 @@ function DailyTearCalendar({
         )}
 
         {/* Số ngày Dương Lịch cực lớn */}
-        <div className={`tear-solar-day ${isWeekend ? 'is-weekend' : ''}`}>
+        <div className={`tear-solar-day ${isWeekend ? 'is-weekend' : ''} ${holiday ? 'is-holiday' : ''}`}>
           {solar.day}
         </div>
 

@@ -95,7 +95,8 @@ function MonthlyCalendarGrid({
               key={`cell-${year}-${month}-${solar.day}`}
               className={`month-day-cell ${isSelected ? 'cell-selected' : ''} ${
                 isTodayCell ? 'cell-today' : ''
-              } ${isWeekend ? 'cell-weekend' : ''}`}
+              } ${isWeekend ? 'cell-weekend' : ''} ${holiday ? 'cell-holiday' : ''}`}
+              title={holiday || undefined}
               onClick={() => onSelectDay(solar.day, solar.month, solar.year)}
             >
               {/* Hàng trên: Số Dương Lịch (Góc trái) + Chỉ báo Hoàng Đạo (Góc phải) */}
@@ -116,7 +117,7 @@ function MonthlyCalendarGrid({
               {/* Giữa ô: Can Chi Ngày (Desktop) */}
               <div className="cell-canchi-text">{canChi.day.fullName}</div>
 
-              {/* Hàng dưới: DUY NHẤT Số Ngày Âm Lịch ở góc phải */}
+              {/* Hàng dưới: Số Ngày Âm Lịch ở góc phải */}
               <div className="cell-bottom-row">
                 <span
                   className={`cell-lunar-num ${

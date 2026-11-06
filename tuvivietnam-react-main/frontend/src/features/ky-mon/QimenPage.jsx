@@ -28,7 +28,6 @@ export default function QimenArticles() {
           <p className="qimen-lead">{selected.intro}</p>
           <section><h2>Thông tin chính</h2><dl><div><dt>Tính chất</dt><dd>{selected.type}</dd></div><div><dt>Tháng cần lưu ý</dt><dd>{selected.months}</dd></div><div><dt>Trọng tâm</dt><dd>{selected.focus}</dd></div></dl></section>
           <section className="qimen-detail-text"><h2>Luận giải chi tiết</h2>{(qimenOriginalDetails[selected.slug] || selected.details).map((detail) => <p key={detail}>{detail}</p>)}</section>
-          <p className="qimen-note">Nội dung được biên tập từ tài liệu “Cửu tinh vận trị” do bạn cung cấp. Các luận giải mang tính tham khảo theo quan niệm tử vi dân gian.</p>
           <Link className="qimen-back" to="/ky-mon-don-giap">← Xem các bài khác trong Kỳ Môn</Link>
         </article>
       </main>

@@ -48,7 +48,7 @@ const posts = [
 
   {
     id: 4,
-    title: 'Tử vi đẩu số toàn thư hán việt – Phần cuối',
+    title: 'TỬ VI ĐẨU SỐ TOÀN THƯ HÁN VIỆT – PHẦN CUỐI',
     tag: 'TỬ VI',
     date: '27/09/2026',
     image: 'https://picsum.photos/seed/tuvi-toan-thu/400/280',
@@ -114,11 +114,15 @@ const posts = [
 function CategoryPage() {
   const recommendedPosts = useMemo(() => {
     const candidates = [featured, ...posts];
-    for (let index = candidates.length - 1; index > 0; index -= 1) {
+    const lastRecommended = candidates.find((post) => post.link === '/chuyen-muc/tu-vi-dau-so-toan-thu');
+    const shuffledCandidates = candidates.filter((post) => post !== lastRecommended);
+
+    for (let index = shuffledCandidates.length - 1; index > 0; index -= 1) {
       const randomIndex = Math.floor(Math.random() * (index + 1));
-      [candidates[index], candidates[randomIndex]] = [candidates[randomIndex], candidates[index]];
+      [shuffledCandidates[index], shuffledCandidates[randomIndex]] = [shuffledCandidates[randomIndex], shuffledCandidates[index]];
     }
-    return candidates.slice(0, 10);
+
+    return [...shuffledCandidates, lastRecommended].slice(0, 10);
   }, []);
 
   return (

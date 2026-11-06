@@ -486,6 +486,10 @@
   color: var(--primary-red, #8b1d1d);
 }
 
+.tear-solar-day.is-holiday {
+  color: var(--primary-red, #8b1d1d);
+}
+
 /* Thanh thông tin đánh giá & tiết khí đồng nhất */
 .tear-unified-info-strip {
   display: flex;
@@ -738,13 +742,14 @@
 
 .mini-day-cell {
   aspect-ratio: 1;
+  position: relative;
   background: #ffffff;
   border: 1px solid #cbd5e1;
   border-radius: 5px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   padding: 2px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -785,6 +790,42 @@
 
 .mini-day-cell.is-today.is-selected {
   color: #ffffff !important;
+}
+
+.mini-day-cell.is-weekend:not(.is-selected),
+.mini-day-cell.is-holiday:not(.is-selected) {
+  color: var(--primary-red, #8b1d1d);
+  border-color: #fca5a5;
+  background: #fffafa;
+}
+
+.mini-solar-num,
+.mini-lunar-num {
+  display: block;
+  line-height: 1.1;
+}
+
+.mini-solar-num {
+  align-self: flex-start;
+  padding: 2px 3px;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.mini-lunar-num {
+  position: absolute;
+  right: 5px;
+  bottom: 4px;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.mini-day-cell.is-weekend:not(.is-selected) .mini-lunar-num,
+.mini-day-cell.is-holiday:not(.is-selected) .mini-lunar-num {
+  color: var(--primary-red, #8b1d1d);
 }
 
 /* ==========================================================================
@@ -1581,6 +1622,12 @@
 }
 
 .month-day-cell.cell-weekend:not(.cell-selected) .cell-solar-num {
+  color: var(--primary-red, #8b1d1d);
+}
+
+.month-day-cell.cell-weekend:not(.cell-selected) .cell-lunar-num,
+.month-day-cell.cell-holiday:not(.cell-selected) .cell-solar-num,
+.month-day-cell.cell-holiday:not(.cell-selected) .cell-lunar-num {
   color: var(--primary-red, #8b1d1d);
 }
 
@@ -2445,12 +2492,34 @@
     gap: 12px;
     padding: 12px;
   }
+  .sync-side-card {
+    padding: 10px;
+  }
+  .sync-fields-grid.solar-grid {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 0.9fr) minmax(0, 1.35fr);
+    gap: 6px;
+  }
+  .sync-fields-grid.lunar-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .stepper-btn {
+    width: 18px;
+    font-size: 12px;
+  }
+  .stepper-input {
+    padding: 0;
+    font-size: 13px;
+  }
   .sync-center-control {
     flex-direction: row;
     justify-content: center;
     width: 100%;
     padding: 4px 0;
     gap: 12px;
+  }
+  .sync-switch-icon {
+    transform: rotate(90deg);
   }
   .sync-sep-line {
     width: 35%;
@@ -2495,7 +2564,7 @@
     font-size: 13.5px;
   }
   .cell-lunar-num {
-    font-size: 10px;
+    font-size: 12px;
   }
   .cell-hd-badge {
     font-size: 8px;

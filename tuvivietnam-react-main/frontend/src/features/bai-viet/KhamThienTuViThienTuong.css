@@ -31,6 +31,12 @@
   margin-bottom: 15px;
   color: #8b1e1e;
   font-size: 23px;
+  font-family: 'Be Vietnam Pro', Arial, sans-serif;
+  font-weight: 700;
+  line-height: 1.45;
+  font-variant-numeric: lining-nums;
+  font-feature-settings: 'lnum' 1;
+  font-synthesis: none;
   border-left: 4px solid #c79a3b;
   padding-left: 12px;
 }

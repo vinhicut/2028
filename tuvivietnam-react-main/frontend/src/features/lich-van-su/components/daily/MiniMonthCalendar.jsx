@@ -1,5 +1,5 @@
 import React from 'react';
-import { SHORT_WEEKDAYS } from '../../core/index.js';
+import { getFullDayAlmanac, SHORT_WEEKDAYS } from '../../core/index.js';
 
 /**
  * LỊCH THÁNG THU NHỎ (MINI MONTH CALENDAR)
@@ -62,6 +62,10 @@ function MiniMonthCalendar({
             return <div key={`empty-${idx}`} className="mini-day-cell empty" />;
           }
 
+          const dayData = getFullDayAlmanac(d, viewMonth, viewYear);
+          const { solar, lunar, holiday } = dayData;
+          const isWeekend = solar.dayOfWeek === 0 || solar.dayOfWeek === 6;
+
           const isSelected =
             selectedDay.day === d &&
             selectedDay.month === viewMonth &&
@@ -78,10 +82,15 @@ function MiniMonthCalendar({
               type="button"
               className={`mini-day-cell ${isSelected ? 'is-selected' : ''} ${
                 isCurrentToday ? 'is-today' : ''
-              }`}
+              } ${isWeekend ? 'is-weekend' : ''} ${holiday ? 'is-holiday' : ''}`}
+              title={holiday || undefined}
               onClick={() => onSelectDay(d, viewMonth, viewYear)}
             >
-              {d}
+              <span className="mini-solar-num">{solar.day}</span>
+              <span className="mini-lunar-num">
+                {lunar.day === 1 ? `${lunar.day}/${lunar.month}` : lunar.day}
+                {lunar.isLeap ? 'N' : ''}
+              </span>
             </button>
           );
         })}
